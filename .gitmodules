@@ -1,0 +1,9 @@
+[submodule "external/eigen"]
+	path = external/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "external/sdl"]
+	path = external/sdl
+	url = https://github.com/libsdl-org/SDL.git
+[submodule "external/glog"]
+	path = external/glog
+	url = https://github.com/google/glog.git
