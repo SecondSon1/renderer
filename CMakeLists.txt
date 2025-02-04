@@ -12,7 +12,7 @@ add_subdirectory("external/glog")
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
-add_executable(main src/main.cpp src/sdl_wrap.cpp)
+add_executable(main src/main.cpp src/sdl_wrap.cpp src/scene/from_obj.cpp "src/scene/mesh.cpp"  )
 
 target_compile_features(main PRIVATE cxx_std_20)
 target_link_libraries(main PRIVATE SDL3::SDL3)
