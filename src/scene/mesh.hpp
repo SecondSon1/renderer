@@ -1,18 +1,28 @@
 #pragma once
 
+#include <vector>
+#include <array>
 #include <Eigen/Core>
+#include "fs/obj_parser.hpp"
+#include "linalg.hpp"
 
 namespace renderer {
 
-struct Triangle {
-  using Vector = Eigen::Vector3f;
-  Vector pts[3]{};
+struct Triangle :std::array<Vector3d, 3> {
+  using Vector = Vector3d;
+  using std::array<Vector, 3>::array;
+
+  Triangle Transform(const Mat4x4d& mat) const;
 };
 
-struct Mesh {
-  std::vector<Triangle> triangles;
+Triangle operator+(Triangle tri, Triangle::Vector offset);
+Triangle operator+(Triangle::Vector offset, Triangle tri);
 
-  Mesh Transform(const Eigen::Matrix4d& mat) const;
+struct Mesh {
+  Mesh Transform(const Mat4x4d& mat) const;
+
+  std::vector<Triangle> triangles_;
+  Vector3d local_zero_;
 };
 
 }  // namespace renderer

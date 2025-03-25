@@ -1,16 +1,15 @@
 #pragma once
 
-#include <Eigen/Core>
+#include "linalg.hpp"
 
 namespace renderer {
 
 struct Camera {
-  Camera(double fov, double z_near, double z_far) : fov(fov), z_near(z_near), z_far(z_far) {
-  }
-
   double fov;
   double z_near;
   double z_far;
+
+  Mat4x4d GetProjMatrix(double aspect_ratio) const;
 };
 
 }  // namespace renderer

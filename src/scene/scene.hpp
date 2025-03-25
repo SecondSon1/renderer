@@ -1,16 +1,20 @@
 #pragma once
 
-#include <scene/mesh.hpp>
-#include <scene/camera.hpp>
+#include <vector>
+#include "scene/mesh.hpp"
+#include "scene/camera.hpp"
+#include "util/timer.hpp"
 
 namespace renderer {
 
 struct Scene {
-  Scene(const std::vector<Mesh>& meshes, const Camera& camera) : meshes_(meshes), camera_(camera) {
+  Scene(const std::vector<Mesh>& meshes) : meshes_(meshes) {
   }
 
+  void Advance(util::Timer::SecondsUnit seconds_elapsed);
+
   std::vector<Mesh> meshes_;
-  Camera camera_;
+  util::Timer::SecondsUnit time_since_start_ = 0;
 };
 
 }  // namespace renderer
