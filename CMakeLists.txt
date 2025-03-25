@@ -11,6 +11,7 @@ add_subdirectory("external/sdl")
 add_subdirectory("external/glog")
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
+include_directories("${PROJECT_SOURCE_DIR}/external/imgui")
 
 add_executable(main "src/main.cpp"
     "src/graphics/sdl_wrap.cpp"
@@ -27,7 +28,16 @@ add_executable(main "src/main.cpp"
     "src/renderer.cpp"
     "src/except.cpp"
     "src/fs/root_finder.cpp"
-    "src/scene/scene.cpp")
+    "src/scene/scene.cpp"
+
+    "external/imgui/imgui.cpp"
+	"external/imgui/imgui_draw.cpp"
+	"external/imgui/imgui_demo.cpp"
+	"external/imgui/imgui_tables.cpp"
+	"external/imgui/imgui_widgets.cpp"
+	"external/imgui/backends/imgui_impl_sdl3.cpp"
+	"external/imgui/backends/imgui_impl_sdlrenderer3.cpp"
+ "src/util/timings_measurer.cpp")
 
 target_compile_features(main PRIVATE cxx_std_20)
 target_link_libraries(main PRIVATE SDL3::SDL3)

@@ -2,7 +2,9 @@
 
 #include <atomic>
 #include <cassert>
-
+#include <imgui.h>
+#include <backends/imgui_impl_sdl3.h>
+#include <backends/imgui_impl_sdlrenderer3.h>
 #include <glog/logging.h>
 #include "graphics/sdl_settings.hpp"
 #include "graphics/image.hpp"
@@ -79,6 +81,9 @@ Renderer::Renderer(Window& window, const char* renderer_name) {
   if (!main_tex_) {
     LOG(FATAL) << "Failed to create main texture: " << SDL_GetError();
   }
+
+  ImGui_ImplSDL3_InitForSDLRenderer(window.window_, renderer_);
+  ImGui_ImplSDLRenderer3_Init(renderer_);
 }
 
 Renderer::~Renderer() {
@@ -96,6 +101,7 @@ void Renderer::Render(const renderer::Image& image) {
   if (!result) {
     LOG(FATAL) << "Could not update texture from image: " << SDL_GetError();
   }
+  ImGui::Render();
   result = SDL_RenderTexture(renderer_, main_tex_, NULL, NULL);
   if (!result) {
     LOG(FATAL) << "Could not render texture: " << SDL_GetError();
@@ -103,10 +109,21 @@ void Renderer::Render(const renderer::Image& image) {
 }
 
 void Renderer::Present() {
+  ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
   bool result = SDL_RenderPresent(renderer_);
   if (!result) {
     LOG(FATAL) << "Could not render present: " << SDL_GetError();
   }
+}
+
+std::optional<Event> PollEvent() {
+  Event result;
+  bool gotten = SDL_PollEvent(&result);
+  if (!gotten) {
+    return std::nullopt;
+  }
+  ImGui_ImplSDL3_ProcessEvent(&result);
+  return result;
 }
 
 }  // namespace SDL

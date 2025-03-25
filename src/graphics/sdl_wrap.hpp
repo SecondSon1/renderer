@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-
+#include <optional>
 #include <SDL3/SDL.h>
 #include "graphics/image.hpp"
 
@@ -13,6 +13,10 @@ struct Color {
   unsigned char b;
   unsigned char a;
 };
+
+using Event = SDL_Event;
+
+std::optional<Event> PollEvent();
 
 class Renderer;
 
