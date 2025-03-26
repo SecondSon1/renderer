@@ -18,7 +18,7 @@ class Renderer {
 
  private:
   Index NormalizedToIndex(Vector2d vec) const;
-  void DrawTriangle(Image& img, Triangle tri) const;
+  void DrawTriangle(Image& img, const Triangle& tri) const;
 
  private:
   size_t screen_width_;

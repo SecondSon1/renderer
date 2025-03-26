@@ -14,10 +14,10 @@ namespace {
 std::vector<Mesh> InitialTransform(std::vector<Mesh>&& meshes) {
   std::vector<Mesh> transformed = std::move(meshes);
   for (auto& obj : transformed)
-    obj.local_zero_(2) = -8;
+    obj.local_zero_(2) = -3;
 
   Vector3d translation{};
-  translation << 1, 1, 1;
+  translation << 1, 1, 5;
   Mat4x4d transformation = GetTranslationMatrix(translation);
   transformed[0] = transformed[0].Transform(transformation);
 

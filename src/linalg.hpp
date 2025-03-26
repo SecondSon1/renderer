@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace renderer {
 
@@ -13,6 +14,9 @@ using Vector4d = Eigen::Vector4d;
 
 using Mat4x4f = Eigen::Matrix4f;
 using Mat4x4d = Eigen::Matrix4d;
+
+using Line = Eigen::Hyperplane<double, 2>;
+using Plane = Eigen::Hyperplane<double, 3>;
 
 Mat4x4d GetRotationMatrixX(double rad);
 Mat4x4d GetRotationMatrixY(double rad);

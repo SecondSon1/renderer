@@ -73,8 +73,9 @@ std::unique_ptr<Scene> Application::LoadScene() const {
 Camera Application::InitializeCamera() const {
   return {
       .fov_degrees_ = 90.0,
-      .z_near_ = 0.01,
+      .z_near_ = 1.0,
       .z_far_ = 1000.0,
+      .inf_z_far_ = true,
   };
 }
 

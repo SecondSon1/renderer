@@ -50,10 +50,15 @@ void View::DrawCameraOptions(Camera& camera) {
   constexpr double kZNearMax = 0.1;
   ImGui::SliderScalar("z_near", ImGuiDataType_Double, &camera.z_near_, &kZNearMin, &kZNearMax,
                       "%.3lf", ImGuiSliderFlags_Logarithmic);
-  constexpr double kZFarMin = 10.0;
-  constexpr double kZFarMax = 10000.0;
-  ImGui::SliderScalar("z_far", ImGuiDataType_Double, &camera.z_far_, &kZFarMin, &kZFarMax, "%.1lf",
-                      ImGuiSliderFlags_Logarithmic);
+
+  ImGui::Checkbox("z_far = inf", &camera.inf_z_far_);
+
+  if (!camera.inf_z_far_) {
+    constexpr double kZFarMin = 5.0;
+    constexpr double kZFarMax = 10000.0;
+    ImGui::SliderScalar("z_far", ImGuiDataType_Double, &camera.z_far_, &kZFarMin, &kZFarMax,
+                        "%.1lf", ImGuiSliderFlags_Logarithmic);
+  }
 }
 
 void View::DrawFPS(util::Timer::SecondsUnit avg_frame_time) {

@@ -106,7 +106,12 @@ std::optional<ObjParser::Entry> ObjParser::GetNext() noexcept {
 
   std::istringstream in(line);
   std::string cmd;
-  in >> cmd;
+  if (!(in >> cmd)) {
+    return GetNext();
+  }
+  if (cmd.empty() || cmd[0] == '#') {
+    return GetNext();
+  }
 
   if (cmd == "v") {
     return GetVertexEntry(in);
