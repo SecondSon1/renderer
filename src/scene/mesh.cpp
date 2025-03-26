@@ -42,7 +42,10 @@ Mesh Mesh::Transform(const Mat4x4d& mat) const {
   for (auto& tri : triangles_) {
     result.emplace_back(tri.Transform(mat));
   }
-  return {std::move(result)};
+  return {
+    .triangles_ = std::move(result),
+    .local_zero_ = local_zero_,
+  };
 }
 
 Triangle operator+(Triangle tri, Triangle::Vector offset) {

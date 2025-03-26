@@ -18,5 +18,6 @@ Mat4x4d GetRotationMatrixX(double rad);
 Mat4x4d GetRotationMatrixY(double rad);
 Mat4x4d GetRotationMatrixZ(double rad);
 Mat4x4d GetTranslationMatrix(Vector3d offset);
+Mat4x4d GetScalingMatrix(Vector3d scaling);
 
 }  // namespace renderer

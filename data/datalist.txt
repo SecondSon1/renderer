@@ -1,1 +1,2 @@
 data/cube.obj
+data/cds.obj

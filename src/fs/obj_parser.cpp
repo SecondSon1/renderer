@@ -25,11 +25,11 @@ void ReadOnePartOfFaceEntry(std::istream& in_stream, size_t& vertex_index,
         << "wrong format for face in an .obj file: should specify all 3 indices for vertices";
   }
 
-  char split;
-  if (!(in_stream >> split)) {
+  int split = in_stream.get();
+  if (split != '/') {
     return;
   }
-  if (split == '/' && in_stream.peek() != '/') {
+  if (in_stream.peek() != '/') {
     size_t tex_ind;
     if (!(in_stream >> tex_ind)) {
       LOG(FATAL) << "wrong format for face in an .obj file: after '/' should follow texture "
@@ -37,7 +37,7 @@ void ReadOnePartOfFaceEntry(std::istream& in_stream, size_t& vertex_index,
     }
     texture_index = tex_ind;
   }
-  if (!(in_stream >> split)) {
+  if ((split = in_stream.get()) != '/') {
     return;
   }
   if (split == '/') {

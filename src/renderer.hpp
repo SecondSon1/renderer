@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "linalg.hpp"
 #include "scene/scene.hpp"
 #include "scene/camera.hpp"
@@ -12,8 +13,8 @@ class Renderer {
  public:
   Renderer(Width screen_width, Height screen_height);
 
-  Image Render(const Scene& scene, const Camera& camera);
-  Image RenderWireframe(const Scene& scene, const Camera& camera);
+  Image Render(const Scene* scene, const Camera& camera);
+  Image RenderWireframe(const Scene* scene, const Camera& camera);
 
  private:
   Index NormalizedToIndex(Vector2d vec) const;

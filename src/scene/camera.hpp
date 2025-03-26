@@ -5,11 +5,13 @@
 namespace renderer {
 
 struct Camera {
-  double fov;
-  double z_near;
-  double z_far;
-
   Mat4x4d GetProjMatrix(double aspect_ratio) const;
+
+  double fov_degrees_;
+  double z_near_;
+  double z_far_;
+
+  Vector3d pos_;
 };
 
 }  // namespace renderer

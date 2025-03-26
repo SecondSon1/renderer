@@ -1,20 +1,25 @@
 #pragma once
 
 #include <vector>
+#include <utility>
 #include "scene/mesh.hpp"
 #include "scene/camera.hpp"
+#include "linalg.hpp"
 #include "util/timer.hpp"
 
 namespace renderer {
 
-struct Scene {
-  Scene(const std::vector<Mesh>& meshes) : meshes_(meshes) {
-  }
+class Scene {
+ public:
+  Scene(std::vector<Mesh>&& meshes);
+  virtual ~Scene() = default;
 
-  void Advance(util::Timer::SecondsUnit seconds_elapsed);
+  virtual void Advance(util::Timer::SecondsUnit seconds_elapsed) = 0;
 
+  const std::vector<Mesh>& GetMeshes() const;
+
+ protected:
   std::vector<Mesh> meshes_;
-  util::Timer::SecondsUnit time_since_start_ = 0;
 };
 
 }  // namespace renderer

@@ -9,6 +9,7 @@
 #include <glog/logging.h>
 #include "fs/loader.hpp"
 #include "scene/mesh.hpp"
+#include "scenes/example_scene.hpp"
 
 namespace renderer {
 
@@ -44,7 +45,7 @@ void Application::Run() {
     auto seconds_per_last_frame = timer_.Lap();
     frame_timings_measurer_.AddTiming(seconds_per_last_frame);
     if (!is_paused) {
-      scene_.Advance(seconds_per_last_frame);
+      scene_->Advance(seconds_per_last_frame);
     }
 
     RenderImage();
@@ -61,21 +62,19 @@ constexpr std::string_view kDatalistFileName = "data/datalist.txt";
 
 }
 
-Scene Application::LoadScene() const {
-  static std::filesystem::path kDatalistFilePath = kDatalistFileName;
-
+std::unique_ptr<Scene> Application::LoadScene() const {
+  static const std::filesystem::path kDatalistFilePath = kDatalistFileName;
   DataLoader loader(kDatalistFilePath);
   std::vector<Mesh> objects = loader.GetAllObjects();
-  // temp
-  objects[0].local_zero_(2) = -4;
-  return {std::move(objects)};
+
+  return std::make_unique<example::ExampleScene>(std::move(objects));
 }
 
 Camera Application::InitializeCamera() const {
   return {
-      .fov = std::numbers::pi / 2,
-      .z_near = 0.01,
-      .z_far = 1000.0,
+      .fov_degrees_ = 90.0,
+      .z_near_ = 0.01,
+      .z_far_ = 1000.0,
   };
 }
 
@@ -90,14 +89,10 @@ void Application::HandleEvent(SDL::Event&& event) {
 }
 
 void Application::RenderImage() {
-  if (is_paused) {
-    return;
-  }
-
   if (is_wireframe) {
-    last_image_ = renderer_.RenderWireframe(scene_, camera_);
+    last_image_ = renderer_.RenderWireframe(scene_.get(), camera_);
   } else {
-    last_image_ = renderer_.Render(scene_, camera_);
+    last_image_ = renderer_.Render(scene_.get(), camera_);
   }
 }
 

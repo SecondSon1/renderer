@@ -1,13 +1,30 @@
 ﻿# renderer
 
+### Чтобы склонировать репозиторий:
+
+```bash
+git --recursive -b dev https://github.com/SecondSon1/renderer.git
+```
+
+Если уже склонировали без recursive, то надо будет прописать
+```bash
+git submodule update --recursive
+```
+чтобы подтянуть все зависимости, которые добавлены, как git submodules.
+
 ### Чтобы запустить:
 
-Поменять PATH_TO_PROJECT_ROOT в main.cpp. Так как я пишу и запускаю код
-в Visual Studio, оно запускает его глубоко, и то, как выйти в корневую директорию,
-подобрано эмпирически. Если надо узнать CWD (current working directory),
-поставьте туда "." и запустите код, в логах первой строчкой выведет CWD.
+В Windows:
 
-Далее:
+В Visual Studio открыть папку с проектом и запустить там.
+
+Через CMD/Powershell надо будет вызывать ```vcvarsall.bat```,
+либо сразу открыть Developer Command Prompt, которая сделает
+это за вас. Это подгружает в PATH исполняемые утилиты, связанные
+с компилятором. Оттуда вы можете прописать то же самое, что и в
+случае с bash.
+
+В Unix-based:
 
 ```bash
 mkdir build

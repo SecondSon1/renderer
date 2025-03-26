@@ -28,4 +28,12 @@ Mat4x4d GetTranslationMatrix(Vector3d offset) {
   return result;
 }
 
+Mat4x4d GetScalingMatrix(Vector3d scaling) {
+  Mat4x4d result = Mat4x4d::Identity();
+  result(0, 0) = scaling(0);
+  result(1, 1) = scaling(1);
+  result(2, 2) = scaling(2);
+  return result;
+}
+
 }  // namespace renderer

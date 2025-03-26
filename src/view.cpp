@@ -42,17 +42,17 @@ void View::DrawWireframeOption(bool& wireframe) {
 
 void View::DrawCameraOptions(Camera& camera) {
   StartOptionsWindow();
-  constexpr double kFOVMinVal = std::numbers::pi / 6;
-  constexpr double kFOVMaxVal = std::numbers::pi * 2 / 3;
-  ImGui::SliderScalar("FOV (rad)", ImGuiDataType_Double, &camera.fov, &kFOVMinVal,
+  constexpr double kFOVMinVal = 30;
+  constexpr double kFOVMaxVal = 150;
+  ImGui::SliderScalar("FOV (deg)", ImGuiDataType_Double, &camera.fov_degrees_, &kFOVMinVal,
                       &kFOVMaxVal, "%.1lf");
   constexpr double kZNearMin = 0.001;
   constexpr double kZNearMax = 0.1;
-  ImGui::SliderScalar("z_near", ImGuiDataType_Double, &camera.z_near, &kZNearMin, &kZNearMax,
+  ImGui::SliderScalar("z_near", ImGuiDataType_Double, &camera.z_near_, &kZNearMin, &kZNearMax,
                       "%.3lf", ImGuiSliderFlags_Logarithmic);
   constexpr double kZFarMin = 10.0;
   constexpr double kZFarMax = 10000.0;
-  ImGui::SliderScalar("z_far", ImGuiDataType_Double, &camera.z_far, &kZFarMin, &kZFarMax, "%.1lf",
+  ImGui::SliderScalar("z_far", ImGuiDataType_Double, &camera.z_far_, &kZFarMin, &kZFarMax, "%.1lf",
                       ImGuiSliderFlags_Logarithmic);
 }
 

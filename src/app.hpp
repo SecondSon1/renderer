@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "renderer.hpp"
 #include "view.hpp"
 #include "scene/scene.hpp"
@@ -18,7 +19,7 @@ class Application {
   void Run();
 
  private:
-  Scene LoadScene() const;
+  std::unique_ptr<Scene> LoadScene() const;
   Camera InitializeCamera() const;
 
   void HandleEvent(SDL::Event&& event);
@@ -27,7 +28,7 @@ class Application {
 
  private:
   Renderer renderer_;
-  Scene scene_;
+  std::unique_ptr<Scene> scene_;
   Image last_image_;
   Camera camera_;
   View view_;

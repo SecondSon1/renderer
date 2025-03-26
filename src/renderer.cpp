@@ -62,19 +62,19 @@ Renderer::Renderer(Width screen_width, Height screen_height)
   assert(screen_height_ > 0);
 }
 
-Image Renderer::Render(const Scene& scene, const Camera& camera) {
+Image Renderer::Render(const Scene* scene, const Camera& camera) {
   // TODO
   return RenderWireframe(scene, camera);
 }
 
-Image Renderer::RenderWireframe(const Scene& scene, const Camera& camera) {
+Image Renderer::RenderWireframe(const Scene* scene, const Camera& camera) {
   // TODO: clipping
   double aspect_ratio = static_cast<double>(screen_height_) / screen_width_;
   auto proj_mat = camera.GetProjMatrix(aspect_ratio);
   Image result = Image(Width(screen_width_), Height(screen_height_));
 
   // SDL_SetRenderDrawColor(sdlRenderer.renderer, 255, 255, 255, 255);
-  for (const auto& mesh : scene.meshes_) {
+  for (const auto& mesh : scene->GetMeshes()) {
     // auto projectedMesh = mesh.Transform(projMat);
     for (const auto& tri : mesh.triangles_) {
       auto tri_global_cds = tri + mesh.local_zero_;
