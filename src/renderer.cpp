@@ -326,9 +326,9 @@ void Renderer::FillTriangle(ImageWithDepth& img, const Triangle& tri, Pixel colo
   Index v1 = NormalizedToIndex(tri[1].head<2>());
   Index v2 = NormalizedToIndex(tri[2].head<2>());
 
-  util::IndexWithDepth v0d = {v0, tri[0][2]};
-  util::IndexWithDepth v1d = {v1, tri[1][2]};
-  util::IndexWithDepth v2d = {v2, tri[2][2]};
+  util::IndexWithDepth v0d = {v0, static_cast<float>(tri[0][2])};
+  util::IndexWithDepth v1d = {v1, static_cast<float>(tri[1][2])};
+  util::IndexWithDepth v2d = {v2, static_cast<float>(tri[2][2])};
 
   util::FillTriangle(img, v0d, v1d, v2d, color);
 }

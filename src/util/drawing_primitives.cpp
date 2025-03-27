@@ -114,7 +114,7 @@ void FillBufferWithLine(std::vector<IndexWithDepth>& buf, IndexWithDepth from, I
     }
     if (y != prev_y) {
       Index pt_nodepth = (Col(prev_x), Row(prev_y));
-      float pt_depth = InterpolateReciprocal(from, to, pt_nodepth);
+      float pt_depth = static_cast<float>(InterpolateReciprocal(from, to, pt_nodepth));
       IndexWithDepth res = {pt_nodepth, pt_depth};
       buf.emplace_back(std::move(res));
     }
