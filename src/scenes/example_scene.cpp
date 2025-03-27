@@ -35,8 +35,12 @@ Lighting GenerateLighting() {
       .intensity_ = kAmbientLightLevel,
   });
   result.emplace_back(DirectionalLight{
+      .direction_ = Vector3d(0, -1, 0).normalized(),
+      .intensity_ = kMainLightLevel / 4,
+  });
+  result.emplace_back(DirectionalLight{
       .direction_ = Vector3d(1, 0, -1).normalized(),
-      .intensity_ = kMainLightLevel,
+      .intensity_ = kMainLightLevel / 4 * 3,
   });
   return result;
 }

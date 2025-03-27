@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <utility>
+#include <vector>
 #include <glog/logging.h>
 #include "util/util.hpp"
 
@@ -16,6 +17,9 @@ void DrawLine(ImageWithDepth& img, Index from, Index to, Pixel color) {
   assert(0 <= to.col_ && to.col_ < img.GetWidth());
   assert(0 <= from.row_ && from.row_ < img.GetHeight());
   assert(0 <= to.row_ && to.row_ < img.GetHeight());
+  if (from.row_ > to.row_ || (from.row_ == to.row_ && from.col_ > to.col_)) {
+    std::swap(from, to);
+  }
   int32_t x = from.col_;
   int32_t y = from.row_;
   int32_t x1 = to.col_;
@@ -54,8 +58,10 @@ double InterpolateReciprocal(IndexWithDepth a, IndexWithDepth b, Index point) {
   double t = (t_x + t_y) / 2;
   */
   double t = (px * cx + py * cy) / (px * px + py * py);
-  //double den = t / a.z_ + (1 - t) / b.z_;
-  //return 1 / den;
+  // double den = t / a.z_ + (1 - t) / b.z_;
+  // return 1 / den;
+  t = std::min(1.0, t);
+  t = std::max(0.0, t);
   double res = a.z_ * b.z_ / (t * b.z_ + (1 - t) * a.z_);
   return res;
 }
@@ -64,86 +70,72 @@ void FillScanline(ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to, P
   assert(from.row_ == to.row_);
   assert(from.col_ <= to.col_);
   if (from.col_ == to.col_) {
-    img[from].SetIfCloserToCamera(color, from.z_);
+    img[static_cast<Index>(from)].SetIfCloserToCamera(color, from.z_);
     return;
   }
   const double range_len_inv = 1 / (to.col_ - from.col_);
   for (size_t i = from.col_; i <= to.col_; ++i) {
     double t = (i - from.col_) * range_len_inv;
     assert(0 <= t && t <= 1);
-    //double den = t / from.z_ + (1 - t) / to.z_;
+    // double den = t / from.z_ + (1 - t) / to.z_;
     double depth = from.z_ * to.z_ / (t * to.z_ + (1 - t) * from.z_);
     img[from.row_, Col(i)].SetIfCloserToCamera(color, depth);
   }
 }
 
+std::vector<IndexWithDepth> line_buffer_l;
+std::vector<IndexWithDepth> line_buffer_r;
+void FillBufferWithLine(std::vector<IndexWithDepth>& buf, IndexWithDepth from, IndexWithDepth to) {
+  if (from.row_ > to.row_ || (from.row_ == to.row_ && from.col_ > to.col_)) {
+    std::swap(from, to);
+  }
+  buf.clear();
+  int32_t x = from.col_;
+  int32_t y = from.row_;
+  int32_t x1 = to.col_;
+  int32_t y1 = to.row_;
+  int32_t x_dir = (x < x1 ? 1 : -1);
+  int32_t y_dir = (y < y1 ? 1 : -1);
+  int32_t dx = std::abs(x1 - x);
+  int32_t dy = std::abs(y1 - y);
+  int32_t error = dx - dy;
+
+  while (!(x == x1 && y == y1)) {
+    auto err2 = error * 2;
+    int32_t prev_x = x;
+    int32_t prev_y = y;
+    if (err2 > -dy) {
+      error -= dy;
+      x += x_dir;
+    }
+    if (err2 < dx) {
+      error += dx;
+      y += y_dir;
+    }
+    if (y != prev_y) {
+      Index pt_nodepth = (Col(prev_x), Row(prev_y));
+      float pt_depth = InterpolateReciprocal(from, to, pt_nodepth);
+      IndexWithDepth res = {pt_nodepth, pt_depth};
+      buf.emplace_back(std::move(res));
+    }
+  }
+}
+
 void FillAreaBetweenTwoSegments(ImageWithDepth& img, IndexWithDepth point, IndexWithDepth v1,
                                 IndexWithDepth v2, Pixel color) {
-  int32_t x_left = point.col_;
-  int32_t y_left = point.row_;
-  int32_t x_right = x_left;
-  int32_t y_right = y_left;
-  const int32_t x_left_target = v1.col_;
-  const int32_t y_left_target = v1.row_;
-  const int32_t x_right_target = v2.col_;
-  const int32_t y_right_target = v2.row_;
-
-  const int32_t x_dir_left = (x_left < x_left_target ? 1 : -1);
-  const int32_t y_dir_left = (y_left < y_left_target ? 1 : -1);
-  const int32_t x_dir_right = (x_right < x_right_target ? 1 : -1);
-  const int32_t y_dir_right = (y_right < y_right_target ? 1 : -1);
-
-  const int32_t dx_left = std::abs(x_left - x_left_target);
-  const int32_t dy_left = std::abs(y_left - y_left_target);
-  const int32_t dx_right = std::abs(x_right - x_right_target);
-  const int32_t dy_right = std::abs(y_right - y_right_target);
-  int32_t error_left = dx_left - dy_left;
-  int32_t error_right = dx_right - dy_right;
-  img[Col(x_left), Row(y_left)].SetIfCloserToCamera(color, point.z_);
-
-  while (y_left != y_left_target) {
-    size_t current_y = y_left;
-    assert(y_left == y_right);
-
-    while (!(x_left == x_left_target && y_left == y_left_target)) {
-      auto err2 = error_left * 2;
-      if (err2 > -dy_left) {
-        error_left -= dy_left;
-        x_left += x_dir_left;
-      }
-      if (err2 < dx_left) {
-        error_left += dx_left;
-        y_left += y_dir_left;
-        break;
-      }
-    }
-    while (!(x_right == x_right_target && y_right == y_right_target)) {
-      auto err2 = error_right * 2;
-      if (err2 > -dy_right) {
-        error_right -= dy_right;
-        x_right += x_dir_right;
-      }
-      if (err2 < dx_right) {
-        error_right += dx_right;
-        y_right += y_dir_right;
-        break;
-      }
-    }
-
-    Index from_scanline_nodepth = (Col(x_left), Row(current_y));
-    Index to_scanline_nodepth = (Col(x_right), Row(current_y));
-    float from_depth = InterpolateReciprocal(point, v1, from_scanline_nodepth);
-    float to_depth = InterpolateReciprocal(point, v2, to_scanline_nodepth);
-    IndexWithDepth from_scanline = {from_scanline_nodepth, from_depth};
-    IndexWithDepth to_scanline = {to_scanline_nodepth, to_depth};
-    assert(std::min(point.z_, v1.z_) - 1e-3 <= from_depth &&
-           from_depth <= std::max(point.z_, v1.z_) + 1e-3);
-    assert(std::min(point.z_, v2.z_) - 1e-3 <= to_depth &&
-           to_depth <= std::max(point.z_, v2.z_) + 1e-3);
-    FillScanline(img, from_scanline, to_scanline, color);
+  assert(v1.row_ == v2.row_);
+  if (img.GetHeight() > line_buffer_l.capacity()) {
+    line_buffer_l.reserve(std::max(2 * line_buffer_l.capacity(), static_cast<size_t>(img.GetHeight())));
+    line_buffer_r.reserve(line_buffer_r.capacity());
   }
-
-  FillScanline(img, v1, v2, color);
+  
+  FillBufferWithLine(line_buffer_l, point, v1);
+  FillBufferWithLine(line_buffer_r, point, v2);
+  assert(line_buffer_l.size() == line_buffer_r.size());
+  size_t line_buffer_sz = line_buffer_l.size();
+  for (size_t i = 0; i < line_buffer_sz; ++i) {
+    FillScanline(img, line_buffer_l[i], line_buffer_r[i], color);
+  }
 }
 
 void FillTriangleFlatBottom(ImageWithDepth& img, IndexWithDepth top, IndexWithDepth bottom1,
