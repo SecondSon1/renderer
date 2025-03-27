@@ -32,7 +32,7 @@ class Application {
  private:
   Renderer renderer_;
   std::unique_ptr<Scene> scene_;
-  Image last_image_;
+  ImageWithDepth last_image_;
   Camera camera_;
   Controller ctl_;
   View view_;

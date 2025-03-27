@@ -1,10 +1,19 @@
 #include <graphics/image.hpp>
 
-#include <graphics/sdl_settings.hpp>
 #include <cassert>
 #include <cstdint>
+#include <limits>
+#include "graphics/sdl_settings.hpp"
 
 namespace renderer {
+
+PixelWithDepth::operator Pixel() const {
+  Pixel result;
+  result.r_ = r_;
+  result.g_ = g_;
+  result.b_ = b_;
+  return result;
+}
 
 Index operator,(Row row, Col col) noexcept {
   return {
@@ -17,93 +26,130 @@ Index operator,(Col col, Row row) noexcept {
   return (row, col);
 }
 
-Image::Image(Width width, Height height) noexcept
+ImageWithDepth::ImageWithDepth(Width width, Height height) noexcept
     : width_(width),
       height_(height),
-      buf_(width * height * SDL::settings::pixel_fmt::kPixelSizeInBytes) {
+      buf_(width * height * SDL::settings::pixel_fmt::kPixelSizeInBytes),
+      z_buf_(width * height, std::numeric_limits<float>::infinity()) {
 }
 
-Width Image::GetWidth() const {
+Width ImageWithDepth::GetWidth() const {
   return Width{width_};
 }
 
-Height Image::GetHeight() const {
+Height ImageWithDepth::GetHeight() const {
   return Height{height_};
 }
 
-Pixel Image::operator[](Index idx) const {
-  const uint8_t* address = &buf_[GetPixelIndex(idx) * SDL::settings::pixel_fmt::kPixelSizeInBytes];
+PixelWithDepth ImageWithDepth::operator[](Index idx) const {
+  size_t pix_idx = GetPixelIndex(idx);
+  const uint8_t* address = &buf_[pix_idx * SDL::settings::pixel_fmt::kPixelSizeInBytes];
+  const float* z_address = &z_buf_[pix_idx];
 
   // const_cast is OK here since PixelReference here does not write to address, it only reads. No UB
-  return Pixel(PixelReference(const_cast<uint8_t*>(address)));
+  return PixelWithDepth(
+      PixelReference(const_cast<uint8_t*>(address), const_cast<float*>(z_address), Tag{}));
 }
 
-Image::PixelReference Image::operator[](Index idx) {
+ImageWithDepth::PixelReference ImageWithDepth::operator[](Index idx) {
   size_t pixel_idx = GetPixelIndex(idx);
   size_t data_idx = pixel_idx * SDL::settings::pixel_fmt::kPixelSizeInBytes;
   uint8_t* address = &buf_[data_idx];
-  return {address};
+  float* z_address = &z_buf_[pixel_idx];
+  return {address, z_address, Tag{}};
 }
 
-const void* Image::GetPixelBuffer() const {
+const void* ImageWithDepth::GetPixelBuffer() const {
   return static_cast<const void*>(buf_.data());
 }
 
-size_t Image::GetPixelIndex(Index idx) const {
+size_t ImageWithDepth::GetPixelIndex(Index idx) const {
   assert(idx.col_ < width_);
   assert(idx.row_ < height_);
   size_t row_from_top = height_ - idx.row_ - 1;
   return row_from_top * width_ + idx.col_;
 }
 
-Image::PixelReference::PixelReference(uint8_t* pixel) noexcept : pixel_(pixel) {
+ImageWithDepth::PixelReference::PixelReference(uint8_t* pixel, float* z_entry,
+                                               ImageWithDepth::Tag) noexcept
+    : pixel_(pixel), z_(z_entry) {
 }
 
-Image::PixelReference::operator Pixel() const noexcept {
-  return {.r = ReadR(), .g = ReadG(), .b = ReadB()};
+ImageWithDepth::PixelReference::operator PixelWithDepth() const noexcept {
+  PixelWithDepth result = {.z_ = ReadZ()};
+  result.r_ = ReadR();
+  result.g_ = ReadG();
+  result.b_ = ReadB();
+  return result;
 }
 
-Image::PixelReference Image::PixelReference::operator=(Pixel pixel) {
-  ReadR() = pixel.r;
-  ReadG() = pixel.g;
-  ReadB() = pixel.b;
+ImageWithDepth::PixelReference ImageWithDepth::PixelReference::operator=(Pixel pixel) {
+  ReadR() = pixel.r_;
+  ReadG() = pixel.g_;
+  ReadB() = pixel.b_;
   return *this;
 }
 
-Image::PixelReference Image::PixelReference::SetR(uint8_t r) {
+ImageWithDepth::PixelReference ImageWithDepth::PixelReference::operator=(PixelWithDepth pixel) {
+  ReadZ() = pixel.z_;
+  return *this = Pixel(pixel);
+}
+
+ImageWithDepth::PixelReference ImageWithDepth::PixelReference::SetR(uint8_t r) {
   ReadR() = r;
   return *this;
 }
 
-Image::PixelReference Image::PixelReference::SetG(uint8_t g) {
+ImageWithDepth::PixelReference ImageWithDepth::PixelReference::SetG(uint8_t g) {
   ReadG() = g;
   return *this;
 }
 
-Image::PixelReference Image::PixelReference::SetB(uint8_t b) {
+ImageWithDepth::PixelReference ImageWithDepth::PixelReference::SetB(uint8_t b) {
   ReadB() = b;
   return *this;
 }
 
-uint8_t Image::PixelReference::ReadR() const {
+ImageWithDepth::PixelReference ImageWithDepth::PixelReference::SetZ(float z) {
+  ReadZ() = z;
+  return *this;
+}
+
+ImageWithDepth::PixelReference ImageWithDepth::PixelReference::SetIfCloserToCamera(
+    Pixel pixel, float pixel_depth) {
+  if (ReadZ() > pixel_depth) {
+    *this = pixel;
+    ReadZ() = pixel_depth;
+  }
+  return *this;
+}
+
+uint8_t ImageWithDepth::PixelReference::ReadR() const {
   return *(pixel_ + SDL::settings::pixel_fmt::kROffsetInBytes);
 }
-uint8_t& Image::PixelReference::ReadR() {
+uint8_t& ImageWithDepth::PixelReference::ReadR() {
   return *(pixel_ + SDL::settings::pixel_fmt::kROffsetInBytes);
 }
 
-uint8_t Image::PixelReference::ReadG() const {
+uint8_t ImageWithDepth::PixelReference::ReadG() const {
   return *(pixel_ + SDL::settings::pixel_fmt::kGOffsetInBytes);
 }
-uint8_t& Image::PixelReference::ReadG() {
+uint8_t& ImageWithDepth::PixelReference::ReadG() {
   return *(pixel_ + SDL::settings::pixel_fmt::kGOffsetInBytes);
 }
 
-uint8_t Image::PixelReference::ReadB() const {
+uint8_t ImageWithDepth::PixelReference::ReadB() const {
   return *(pixel_ + SDL::settings::pixel_fmt::kBOffsetInBytes);
 }
-uint8_t& Image::PixelReference::ReadB() {
+uint8_t& ImageWithDepth::PixelReference::ReadB() {
   return *(pixel_ + SDL::settings::pixel_fmt::kBOffsetInBytes);
+}
+
+float ImageWithDepth::PixelReference::ReadZ() const {
+  return *z_;
+}
+float& ImageWithDepth::PixelReference::ReadZ() {
+  return *z_;
 }
 
 }  // namespace renderer

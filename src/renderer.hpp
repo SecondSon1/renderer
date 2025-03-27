@@ -13,13 +13,13 @@ class Renderer {
  public:
   Renderer(Width screen_width, Height screen_height);
 
-  Image Render(const Scene* scene, const Camera& camera);
-  Image RenderWireframe(const Scene* scene, const Camera& camera);
+  ImageWithDepth Render(const Scene* scene, const Camera& camera);
+  ImageWithDepth RenderWireframe(const Scene* scene, const Camera& camera);
 
  private:
   Index NormalizedToIndex(Vector2d vec) const;
-  void DrawTriangle(Image& img, const Triangle& tri) const;
-  void FillTriangle(Image& img, const Triangle& tri, Pixel color) const;
+  void DrawTriangle(ImageWithDepth& img, const Triangle& tri) const;
+  void FillTriangle(ImageWithDepth& img, const Triangle& tri, Pixel color) const;
 
  private:
   size_t screen_width_;

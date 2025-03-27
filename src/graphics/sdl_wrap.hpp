@@ -62,7 +62,7 @@ class Renderer {
   Renderer(Window& window, const char* renderer_name);
   ~Renderer();
 
-  void Render(const renderer::Image& image);
+  void Render(const renderer::ImageWithDepth& image);
   void Present();
 
  private:

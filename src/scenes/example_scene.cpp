@@ -56,6 +56,7 @@ ExampleScene::ExampleScene(std::vector<Mesh>&& meshes)
 
 void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {
   time_since_start_ += seconds_elapsed;
+  return;
   size_t mesh_to_transform = 0;
   auto example_transformation = ExampleTransform(time_since_start_);
 

@@ -245,10 +245,10 @@ Renderer::Renderer(Width screen_width, Height screen_height)
   assert(screen_height_ > 0);
 }
 
-Image Renderer::Render(const Scene* scene, const Camera& camera) {
+ImageWithDepth Renderer::Render(const Scene* scene, const Camera& camera) {
   double aspect_ratio = static_cast<double>(screen_height_) / screen_width_;
   auto proj_mat = camera.GetProjMatrix(aspect_ratio);
-  Image result = Image(Width(screen_width_), Height(screen_height_));
+  ImageWithDepth result(static_cast<Width>(screen_width_), static_cast<Height>(screen_height_));
 
   Mat4x4d world_to_camera = camera.GetWorldToCameraTransform();
   Lighting lighting = scene->GetLighting();
@@ -270,19 +270,19 @@ Image Renderer::Render(const Scene* scene, const Camera& camera) {
       auto tri_projected = tri.Transform(proj_mat);
       double luminance = tri.light_intensity_;
       Pixel result_color;
-      result_color.r = std::round(colors::kWhite.r * luminance);
-      result_color.g = std::round(colors::kWhite.g * luminance);
-      result_color.b = std::round(colors::kWhite.b * luminance);
+      result_color.r_ = std::round(colors::kWhite.r_ * luminance);
+      result_color.g_ = std::round(colors::kWhite.g_ * luminance);
+      result_color.b_ = std::round(colors::kWhite.b_ * luminance);
       FillTriangle(result, tri_projected, result_color);
     }
   }
   return result;
 }
 
-Image Renderer::RenderWireframe(const Scene* scene, const Camera& camera) {
+ImageWithDepth Renderer::RenderWireframe(const Scene* scene, const Camera& camera) {
   double aspect_ratio = static_cast<double>(screen_height_) / screen_width_;
   auto proj_mat = camera.GetProjMatrix(aspect_ratio);
-  Image result = Image(Width(screen_width_), Height(screen_height_));
+  ImageWithDepth result(static_cast<Width>(screen_width_), static_cast<Height>(screen_height_));
 
   Mat4x4d world_to_camera = camera.GetWorldToCameraTransform();
   for (Mesh mesh : scene->GetMeshes()) {
@@ -311,7 +311,7 @@ Index Renderer::NormalizedToIndex(Vector2d vec) const {
   return Col(x_ind), Row(y_ind);
 }
 
-void Renderer::DrawTriangle(Image& img, const Triangle& tri) const {
+void Renderer::DrawTriangle(ImageWithDepth& img, const Triangle& tri) const {
   Index v0 = NormalizedToIndex(tri[0].head<2>());
   Index v1 = NormalizedToIndex(tri[1].head<2>());
   Index v2 = NormalizedToIndex(tri[2].head<2>());
@@ -321,12 +321,16 @@ void Renderer::DrawTriangle(Image& img, const Triangle& tri) const {
   util::DrawLine(img, v1, v2, colors::kWhite);
 }
 
-void Renderer::FillTriangle(Image& img, const Triangle& tri, Pixel color) const {
+void Renderer::FillTriangle(ImageWithDepth& img, const Triangle& tri, Pixel color) const {
   Index v0 = NormalizedToIndex(tri[0].head<2>());
   Index v1 = NormalizedToIndex(tri[1].head<2>());
   Index v2 = NormalizedToIndex(tri[2].head<2>());
 
-  util::FillTriangle(img, v0, v1, v2, color);
+  util::IndexWithDepth v0d = {v0, tri[0][2]};
+  util::IndexWithDepth v1d = {v1, tri[1][2]};
+  util::IndexWithDepth v2d = {v2, tri[2][2]};
+
+  util::FillTriangle(img, v0d, v1d, v2d, color);
 }
 
 }  // namespace renderer

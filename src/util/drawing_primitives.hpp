@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include "graphics/image.hpp"
 #include "scene/mesh.hpp"
 
@@ -7,8 +8,12 @@ namespace renderer {
 
 namespace util {
 
-void DrawLine(Image& img, Index from, Index to, Pixel color);
-void FillTriangle(Image& img, Index v1, Index v2, Index v3, Pixel color);
+struct IndexWithDepth : Index {
+  float z_;
+};
+
+void DrawLine(ImageWithDepth& img, Index from, Index to, Pixel color);
+void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, IndexWithDepth v3, Pixel color);
 
 }  // namespace util
 

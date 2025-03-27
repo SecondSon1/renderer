@@ -94,7 +94,7 @@ Renderer::~Renderer() {
   Impl::QuitSDLIfNotNeeded();
 }
 
-void Renderer::Render(const renderer::Image& image) {
+void Renderer::Render(const renderer::ImageWithDepth& image) {
   const void* buffer = image.GetPixelBuffer();
   size_t pitch = image.GetWidth() * settings::pixel_fmt::kPixelSizeInBytes;
   bool result = SDL_UpdateTexture(main_tex_, NULL, buffer, pitch);

@@ -13,7 +13,7 @@ class View {
  public:
   View(Width width, Height height, std::string title);
 
-  void Display(const Image& image);
+  void Display(const ImageWithDepth& image);
   void BeginFrame();
 
   void DrawWireframeOption(bool& wireframe);

@@ -5,12 +5,13 @@
 #include <cstdint>
 #include <utility>
 #include <glog/logging.h>
+#include "util/util.hpp"
 
 namespace renderer {
 
 namespace util {
 
-void DrawLine(Image& img, Index from, Index to, Pixel color) {
+void DrawLine(ImageWithDepth& img, Index from, Index to, Pixel color) {
   assert(0 <= from.col_ && from.col_ < img.GetWidth());
   assert(0 <= to.col_ && to.col_ < img.GetWidth());
   assert(0 <= from.row_ && from.row_ < img.GetHeight());
@@ -42,15 +43,42 @@ void DrawLine(Image& img, Index from, Index to, Pixel color) {
 
 namespace {
 
-void FillScanline(Image& img, Index from, Index to, Pixel color) {
+double InterpolateReciprocal(IndexWithDepth a, IndexWithDepth b, Index point) {
+  int32_t px = static_cast<int32_t>(b.col_) - static_cast<int32_t>(a.col_);
+  int32_t py = static_cast<int32_t>(b.row_) - static_cast<int32_t>(a.row_);
+  int32_t cx = static_cast<int32_t>(point.col_) - static_cast<int32_t>(a.col_);
+  int32_t cy = static_cast<int32_t>(point.row_) - static_cast<int32_t>(a.row_);
+  /*
+  double t_x = px == 0 ? 0 : (static_cast<double>(cx) / px);
+  double t_y = py == 0 ? 0 : (static_cast<double>(cy) / py);
+  double t = (t_x + t_y) / 2;
+  */
+  double t = (px * cx + py * cy) / (px * px + py * py);
+  //double den = t / a.z_ + (1 - t) / b.z_;
+  //return 1 / den;
+  double res = a.z_ * b.z_ / (t * b.z_ + (1 - t) * a.z_);
+  return res;
+}
+
+void FillScanline(ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to, Pixel color) {
   assert(from.row_ == to.row_);
   assert(from.col_ <= to.col_);
-  for (size_t i = from.col_; i < to.col_; ++i) {
-    img[from.row_, Col(i)] = color;
+  if (from.col_ == to.col_) {
+    img[from].SetIfCloserToCamera(color, from.z_);
+    return;
+  }
+  const double range_len_inv = 1 / (to.col_ - from.col_);
+  for (size_t i = from.col_; i <= to.col_; ++i) {
+    double t = (i - from.col_) * range_len_inv;
+    assert(0 <= t && t <= 1);
+    //double den = t / from.z_ + (1 - t) / to.z_;
+    double depth = from.z_ * to.z_ / (t * to.z_ + (1 - t) * from.z_);
+    img[from.row_, Col(i)].SetIfCloserToCamera(color, depth);
   }
 }
 
-void FillAreaBetweenTwoSegments(Image& img, Index point, Index v1, Index v2, Pixel color) {
+void FillAreaBetweenTwoSegments(ImageWithDepth& img, IndexWithDepth point, IndexWithDepth v1,
+                                IndexWithDepth v2, Pixel color) {
   int32_t x_left = point.col_;
   int32_t y_left = point.row_;
   int32_t x_right = x_left;
@@ -71,7 +99,7 @@ void FillAreaBetweenTwoSegments(Image& img, Index point, Index v1, Index v2, Pix
   const int32_t dy_right = std::abs(y_right - y_right_target);
   int32_t error_left = dx_left - dy_left;
   int32_t error_right = dx_right - dy_right;
-  img[Col(x_left), Row(y_left)] = color;
+  img[Col(x_left), Row(y_left)].SetIfCloserToCamera(color, point.z_);
 
   while (y_left != y_left_target) {
     size_t current_y = y_left;
@@ -101,13 +129,25 @@ void FillAreaBetweenTwoSegments(Image& img, Index point, Index v1, Index v2, Pix
         break;
       }
     }
-    FillScanline(img, (Col(x_left), Row(current_y)), (Col(x_right), Row(current_y)), color);
+
+    Index from_scanline_nodepth = (Col(x_left), Row(current_y));
+    Index to_scanline_nodepth = (Col(x_right), Row(current_y));
+    float from_depth = InterpolateReciprocal(point, v1, from_scanline_nodepth);
+    float to_depth = InterpolateReciprocal(point, v2, to_scanline_nodepth);
+    IndexWithDepth from_scanline = {from_scanline_nodepth, from_depth};
+    IndexWithDepth to_scanline = {to_scanline_nodepth, to_depth};
+    assert(std::min(point.z_, v1.z_) - 1e-3 <= from_depth &&
+           from_depth <= std::max(point.z_, v1.z_) + 1e-3);
+    assert(std::min(point.z_, v2.z_) - 1e-3 <= to_depth &&
+           to_depth <= std::max(point.z_, v2.z_) + 1e-3);
+    FillScanline(img, from_scanline, to_scanline, color);
   }
-  FillScanline(img, (Col(x_left_target), Row(y_left_target)),
-               (Col(x_right_target), Row(y_left_target)), color);
+
+  FillScanline(img, v1, v2, color);
 }
 
-void FillTriangleFlatBottom(Image& img, Index top, Index bottom1, Index bottom2, Pixel color) {
+void FillTriangleFlatBottom(ImageWithDepth& img, IndexWithDepth top, IndexWithDepth bottom1,
+                            IndexWithDepth bottom2, Pixel color) {
   // TODO: care about lighting
   assert(0 <= top.col_ && top.col_ < img.GetWidth());
   assert(0 <= bottom1.col_ && bottom1.col_ < img.GetWidth());
@@ -123,7 +163,8 @@ void FillTriangleFlatBottom(Image& img, Index top, Index bottom1, Index bottom2,
   }
   FillAreaBetweenTwoSegments(img, top, bottom1, bottom2, color);
 }
-void FillTriangleFlatTop(Image& img, Index top1, Index top2, Index bottom, Pixel color) {
+void FillTriangleFlatTop(ImageWithDepth& img, IndexWithDepth top1, IndexWithDepth top2,
+                         IndexWithDepth bottom, Pixel color) {
   // TODO: care about lighting
   assert(0 <= top1.col_ && top1.col_ < img.GetWidth());
   assert(0 <= top2.col_ && top2.col_ < img.GetWidth());
@@ -142,7 +183,8 @@ void FillTriangleFlatTop(Image& img, Index top1, Index top2, Index bottom, Pixel
 
 }  // namespace
 
-void FillTriangle(Image& img, Index v1, Index v2, Index v3, Pixel color) {
+void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, IndexWithDepth v3,
+                  Pixel color) {
   if (v2.row_ > v1.row_) {
     std::swap(v1, v2);
   }
@@ -168,11 +210,16 @@ void FillTriangle(Image& img, Index v1, Index v2, Index v3, Pixel color) {
   double d2 = v2.row_ - v3.row_;
   assert(d1 >= 0 && d2 >= 0);
   double sum = std::abs(static_cast<double>(v1.col_) - v3.col_);
-  double x_from_v1 = sum * d1 / (d1 + d2);
+  double t = d1 / (d1 + d2);
+  assert(0 <= t && t <= 1);
+  double x_from_v1 = sum * t;
   if (v3.col_ < v1.col_) {
     x_from_v1 *= -1;
   }
-  Index v1_v3_intersect = (Row(v2.row_), Col(std::round(v1.col_ + x_from_v1)));
+  Index v1_v3_intersect_nodepth = (Row(v2.row_), Col(std::round(v1.col_ + x_from_v1)));
+  double depth_double = 1 / (t / v1.z_ + (1 - t) / v3.z_);
+  float depth = static_cast<float>(depth_double);
+  IndexWithDepth v1_v3_intersect = {v1_v3_intersect_nodepth, depth};
   FillTriangleFlatBottom(img, v1, v2, v1_v3_intersect, color);
   FillTriangleFlatTop(img, v1_v3_intersect, v2, v3, color);
   /*

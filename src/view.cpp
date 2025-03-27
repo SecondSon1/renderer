@@ -22,7 +22,7 @@ View::View(Width width, Height height, std::string title)
     : window_(title.data(), width, height, kWindowFlags), renderer_(window_, nullptr) {
 }
 
-void View::Display(const renderer::Image& image) {
+void View::Display(const renderer::ImageWithDepth& image) {
   EndOptionsWindow();
   renderer_.Render(image);
   renderer_.Present();
