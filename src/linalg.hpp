@@ -12,8 +12,12 @@ using Vector3d = Eigen::Vector3d;
 using Vector4f = Eigen::Vector4f;
 using Vector4d = Eigen::Vector4d;
 
+using Mat3x3f = Eigen::Matrix3f;
+using Mat3x3d = Eigen::Matrix3d;
 using Mat4x4f = Eigen::Matrix4f;
 using Mat4x4d = Eigen::Matrix4d;
+
+using Quaternion = Eigen::Quaterniond;
 
 using Line = Eigen::Hyperplane<double, 2>;
 using Plane = Eigen::Hyperplane<double, 3>;

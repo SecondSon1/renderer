@@ -44,12 +44,43 @@ Mat4x4d Camera::GetProjMatrix(double aspect_ratio) const {
   return proj_mat;
 }
 
+Mat4x4d Camera::GetWorldToCameraTransform() const {
+  Mat4x4d translation = Mat4x4d::Identity();
+  translation.col(3).head<3>() = -pos_;
+  Mat3x3d rotation = dir_.normalized().toRotationMatrix().transpose();
+  Mat4x4d rotation_affine = Mat4x4d::Identity();
+  rotation_affine.row(0).head<3>() = rotation.row(0);
+  rotation_affine.row(1).head<3>() = rotation.row(1);
+  rotation_affine.row(2).head<3>() = rotation.row(2);
+  return rotation_affine * translation;
+}
+
 double Camera::GetFOVInRadians() const {
   return fov_degrees_ * (std::numbers::pi / 180.0);
 }
 
 double Camera::ComputeDistToScreen() const {
   return 1 / std::tan(GetFOVInRadians() / 2);
+}
+
+Vector3d Camera::GetForwardDirection() const {
+  return -dir_.normalized().toRotationMatrix().col(2);
+}
+
+Vector3d Camera::GetUpDirection() const {
+  return dir_.normalized().toRotationMatrix().col(1);
+}
+
+Vector3d Camera::GetRightDirection() const {
+  return dir_.normalized().toRotationMatrix().col(0);
+}
+
+void Camera::Offset(Vector3d shift) {
+  pos_ += shift;
+}
+
+void Camera::RotateLookDir(Quaternion quat) {
+  dir_ *= quat.normalized();
 }
 
 }  // namespace renderer

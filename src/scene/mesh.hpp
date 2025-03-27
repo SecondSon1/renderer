@@ -15,8 +15,9 @@ struct Triangle :std::array<Vector3d, 3> {
   Triangle Transform(const Mat4x4d& mat) const;
 };
 
-Triangle operator+(Triangle tri, Triangle::Vector offset);
-Triangle operator+(Triangle::Vector offset, Triangle tri);
+Triangle operator+=(Triangle& tri, Triangle::Vector offset);
+Triangle operator+(const Triangle& tri, Triangle::Vector offset);
+Triangle operator+(Triangle::Vector offset, const Triangle& tri);
 
 struct Mesh {
   Mesh Transform(const Mat4x4d& mat) const;

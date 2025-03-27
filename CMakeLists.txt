@@ -40,7 +40,7 @@ add_executable(main "src/main.cpp"
 	"external/imgui/imgui_widgets.cpp"
 	"external/imgui/backends/imgui_impl_sdl3.cpp"
 	"external/imgui/backends/imgui_impl_sdlrenderer3.cpp"
- )
+  "src/controller.cpp" "src/util/util.cpp")
 
 target_compile_features(main PRIVATE cxx_std_20)
 target_link_libraries(main PRIVATE SDL3::SDL3)

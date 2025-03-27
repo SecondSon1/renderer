@@ -15,6 +15,12 @@ struct Color {
 };
 
 using Event = SDL_Event;
+using KeyboardEvent = SDL_KeyboardEvent;
+using MouseMotionEvent = SDL_MouseMotionEvent;
+using MouseButtonEvent = SDL_MouseButtonEvent;
+using MouseWheelEvent = SDL_MouseWheelEvent;
+
+using Scancode = SDL_Scancode;
 
 std::optional<Event> PollEvent();
 

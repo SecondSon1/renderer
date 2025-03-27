@@ -10,25 +10,11 @@
 #include <Eigen/Core>
 #include <glog/logging.h>
 #include "util/drawing_primitives.hpp"
+#include "util/util.hpp"
 
 namespace renderer {
 
 namespace {
-
-int Sign(double x) {
-  constexpr double kEPS = 1e-3;
-  if (x > kEPS) {
-    return 1;
-  }
-  if (x < -kEPS) {
-    return -1;
-  }
-  return 0;
-}
-
-bool AlmostEqual(double a, double b) {
-  return Sign(a - b) == 0;
-}
 
 template <size_t kMaxAmount>
 struct ClippedResult {
@@ -50,7 +36,7 @@ Vector3d IntersectPlaneAndLine(Vector3d plane_norm, double d, Vector3d line_star
                                Vector3d line_dir) {
   double num = -(plane_norm.dot(line_start) + d);
   double den = plane_norm.dot(line_dir);
-  double t = Sign(den) == 0 ? 0 : (num / den);
+  double t = util::Sign(den) == 0 ? 0 : (num / den);
   return line_start + line_dir * t;
 }
 
@@ -81,7 +67,7 @@ std::pair<Triangle, Triangle> ClipTwoResults(Vector3d plane_norm, double d, Vect
 }
 
 ClippedResult<2> ClipAgainstPlane(const Triangle& tri, Vector3d plane_norm, double d) {
-  assert(AlmostEqual(plane_norm.squaredNorm(), 1.0));
+  assert(util::AlmostEqual(plane_norm.squaredNorm(), 1.0));
 
   uint8_t count_positive = 0;
   uint8_t positive_inds[3] = {0};
@@ -89,7 +75,7 @@ ClippedResult<2> ClipAgainstPlane(const Triangle& tri, Vector3d plane_norm, doub
   uint8_t negative_inds[3] = {0};
 
   for (uint8_t i = 0; i < 3; ++i) {
-    if (Sign(plane_norm.dot(tri[i]) + d) > 0) {
+    if (util::Sign(plane_norm.dot(tri[i]) + d) > 0) {
       positive_inds[count_positive++] = i;
     } else {
       negative_inds[count_negative++] = i;
@@ -225,12 +211,14 @@ Image Renderer::RenderWireframe(const Scene* scene, const Camera& camera) {
   auto proj_mat = camera.GetProjMatrix(aspect_ratio);
   Image result = Image(Width(screen_width_), Height(screen_height_));
 
-  for (auto mesh : scene->GetMeshes()) {
-    for (auto& tri : mesh.triangles_) {
-      tri = tri + mesh.local_zero_;
+  Mat4x4d world_to_camera = camera.GetWorldToCameraTransform();
+  for (Mesh mesh : scene->GetMeshes()) {
+    for (Triangle& tri : mesh.triangles_) {
+      tri += mesh.local_zero_;
+      tri = tri.Transform(world_to_camera);
     }
     std::vector<Triangle> clipped_triangles = ClipTriangles(mesh.triangles_, camera, aspect_ratio);
-    for (const auto& tri : clipped_triangles) {
+    for (const Triangle& tri : clipped_triangles) {
       auto tri_projected = tri.Transform(proj_mat);
       DrawTriangle(result, tri_projected);
     }
@@ -241,8 +229,8 @@ Image Renderer::RenderWireframe(const Scene* scene, const Camera& camera) {
 Index Renderer::NormalizedToIndex(Vector2d vec) const {
   double x = vec[0];
   double y = vec[1];
-  assert(Sign(x + 1) >= 0 && Sign(x - 1) <= 0);
-  assert(Sign(y + 1) >= 0 && Sign(y - 1) <= 0);
+  assert(util::Sign(x + 1) >= 0 && util::Sign(x - 1) <= 0);
+  assert(util::Sign(y + 1) >= 0 && util::Sign(y - 1) <= 0);
   double x_mult = (x + 1) / 2 * (screen_width_ - 1);
   double y_mult = (y + 1) / 2 * (screen_height_ - 1);
   size_t x_ind = std::round(x_mult);

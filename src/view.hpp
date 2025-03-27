@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "controller.hpp"
 #include "graphics/sdl_wrap.hpp"
 #include "graphics/image.hpp"
 #include "scene/camera.hpp"
@@ -16,6 +17,7 @@ class View {
   void BeginFrame();
 
   void DrawWireframeOption(bool& wireframe);
+  void DrawControllerOptions(Controller& ctl);
   void DrawCameraOptions(Camera& camera);
   void DrawFPS(util::Timer::SecondsUnit avg_frame_time);
   void DrawPauseOption(bool& paused);

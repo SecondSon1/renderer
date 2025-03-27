@@ -48,14 +48,20 @@ Mesh Mesh::Transform(const Mat4x4d& mat) const {
   };
 }
 
-Triangle operator+(Triangle tri, Triangle::Vector offset) {
+Triangle operator+=(Triangle& tri, Triangle::Vector offset) {
   tri[0] += offset;
   tri[1] += offset;
   tri[2] += offset;
   return tri;
 }
 
-Triangle operator+(Triangle::Vector offset, Triangle tri) {
+Triangle operator+(const Triangle& tri, Triangle::Vector offset) {
+  Triangle res;
+  res += offset;
+  return res;
+}
+
+Triangle operator+(Triangle::Vector offset, const Triangle& tri) {
   return tri + offset;
 }
 

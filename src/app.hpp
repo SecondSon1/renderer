@@ -3,6 +3,7 @@
 #include <memory>
 #include "renderer.hpp"
 #include "view.hpp"
+#include "controller.hpp"
 #include "scene/scene.hpp"
 #include "scene/camera.hpp"
 #include "graphics/image.hpp"
@@ -26,18 +27,21 @@ class Application {
   void RenderImage();
   void DrawOptions();
 
+  void Quit();
+
  private:
   Renderer renderer_;
   std::unique_ptr<Scene> scene_;
   Image last_image_;
   Camera camera_;
+  Controller ctl_;
   View view_;
   util::Timer timer_;
   util::TimingsMeasurer frame_timings_measurer_;
 
-  bool is_running = false;
-  bool is_paused = false;
-  bool is_wireframe = false;
+  bool is_running_ = false;
+  bool is_paused_ = false;
+  bool is_wireframe_ = false;
 };
 
 }  // namespace renderer

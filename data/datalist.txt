@@ -1,2 +1,3 @@
 data/cube.obj
 data/cds.obj
+data/teapot.obj

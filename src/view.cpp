@@ -40,8 +40,25 @@ void View::DrawWireframeOption(bool& wireframe) {
   ImGui::Checkbox("Wireframe", &wireframe);
 }
 
+void View::DrawControllerOptions(Controller& ctl) {
+  StartOptionsWindow();
+  constexpr double kCameraSpeedMin = 1.0;
+  constexpr double kCameraSpeedMax = 15.0;
+  ImGui::SliderScalar("Camera speed", ImGuiDataType_Double, ctl.GetCameraSpeedPtr(),
+                      &kCameraSpeedMin, &kCameraSpeedMax, "%.1lf");
+  constexpr double kCameraRotSpeedMin = 0.1;
+  constexpr double kCameraRotSpeedMax = 2;
+  ImGui::SliderScalar("Camera rotation speed", ImGuiDataType_Double,
+                      ctl.GetCameraRotationSpeedPtr(), &kCameraRotSpeedMin, &kCameraRotSpeedMax,
+                      "%.2lf");
+}
+
 void View::DrawCameraOptions(Camera& camera) {
   StartOptionsWindow();
+
+  ImGui::Text("Camera position: x=%.2lf, y=%.2lf, z=%.2lf", camera.pos_.x(), camera.pos_.y(),
+              camera.pos_.z());
+
   constexpr double kFOVMinVal = 30;
   constexpr double kFOVMaxVal = 150;
   ImGui::SliderScalar("FOV (deg)", ImGuiDataType_Double, &camera.fov_degrees_, &kFOVMinVal,
