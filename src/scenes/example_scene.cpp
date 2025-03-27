@@ -13,10 +13,10 @@ namespace {
 
 std::vector<Mesh> InitialTransform(std::vector<Mesh>&& meshes) {
   std::vector<Mesh> transformed = std::move(meshes);
-  for (auto& obj : transformed)
-    obj.local_zero_(2) = -8;
-
-  transformed[2].local_zero_(2) = 8;
+  for (auto& obj : transformed) {
+    bool big = obj.triangles_.size() > 300;
+    obj.local_zero_(2) = big ? 8 : -8;
+  }
 
   Vector3d translation{};
   translation << 2, 1, 1;
