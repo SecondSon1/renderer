@@ -156,7 +156,8 @@ ClippedResult<4> ClipAgainstLeftAndRight(const Triangle& tri, const Camera& came
   return ClipAgainstTwoPlanes(tri, left_plane_normal, 0, right_plane_normal, 0);
 }
 
-ClippedResult<4> ClipAgainstTopAndBottom(const Triangle& tri, const Camera& camera, double aspect_ratio) {
+ClippedResult<4> ClipAgainstTopAndBottom(const Triangle& tri, const Camera& camera,
+                                         double aspect_ratio) {
   const double e = camera.ComputeDistToScreen();
   const double inv_len = std::sqrt(1.0 / (e * e + aspect_ratio * aspect_ratio));
 
@@ -166,7 +167,8 @@ ClippedResult<4> ClipAgainstTopAndBottom(const Triangle& tri, const Camera& came
   return ClipAgainstTwoPlanes(tri, bottom_plane_normal, 0, top_plane_normal, 0);
 }
 
-std::vector<Triangle> ClipTriangles(const std::vector<Triangle>& mesh, const Camera& camera, double aspect_ratio) {
+std::vector<Triangle> ClipTriangles(const std::vector<Triangle>& mesh, const Camera& camera,
+                                    double aspect_ratio) {
   std::vector<Triangle> against_near_and_far;
   against_near_and_far.reserve(mesh.size() * 2 * 2);
   for (const Triangle& tri : mesh) {
@@ -194,6 +196,14 @@ std::vector<Triangle> ClipTriangles(const std::vector<Triangle>& mesh, const Cam
   return against_top_and_bottom;
 }
 
+bool CullingTest(const Triangle& tri, const Camera& camera) {
+  Vector3d look_dir = tri[0];
+  Vector3d tri_side1 = tri[1] - tri[0];
+  Vector3d tri_side2 = tri[2] - tri[0];
+  Vector3d normal = tri_side1.cross(tri_side2);
+  return look_dir.dot(normal) < 0;
+}
+
 }  // namespace
 
 Renderer::Renderer(Width screen_width, Height screen_height)
@@ -203,7 +213,29 @@ Renderer::Renderer(Width screen_width, Height screen_height)
 }
 
 Image Renderer::Render(const Scene* scene, const Camera& camera) {
-  return RenderWireframe(scene, camera);
+  double aspect_ratio = static_cast<double>(screen_height_) / screen_width_;
+  auto proj_mat = camera.GetProjMatrix(aspect_ratio);
+  Image result = Image(Width(screen_width_), Height(screen_height_));
+
+  Mat4x4d world_to_camera = camera.GetWorldToCameraTransform();
+  for (const Mesh& mesh : scene->GetMeshes()) {
+    std::vector<Triangle> tris_to_clip;
+
+    for (const Triangle& tri : mesh.triangles_) {
+      Triangle res = tri;
+      res += mesh.local_zero_;
+      res = res.Transform(world_to_camera);
+      if (CullingTest(res, camera)) {
+        tris_to_clip.emplace_back(std::move(res));
+      }
+    }
+    std::vector<Triangle> clipped_triangles = ClipTriangles(tris_to_clip, camera, aspect_ratio);
+    for (const Triangle& tri : clipped_triangles) {
+      auto tri_projected = tri.Transform(proj_mat);
+      DrawTriangle(result, tri_projected);
+    }
+  }
+  return result;
 }
 
 Image Renderer::RenderWireframe(const Scene* scene, const Camera& camera) {
