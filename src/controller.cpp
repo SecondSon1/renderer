@@ -77,7 +77,7 @@ void Controller::AdvancePositionForward(util::Timer::SecondsUnit elapsed) {
 
 void Controller::AdvancePositionVertical(util::Timer::SecondsUnit elapsed) {
   const Vector3d vert_offset = camera_->GetUpDirection() * camera_speed_;
-  int up = ScancodesSumTotal({SDL_SCANCODE_SPACE}, {SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT});
+  int up = ScancodesSumTotal({SDL_SCANCODE_SPACE}, {SDL_SCANCODE_Z});
   camera_->Offset(vert_offset * (up * elapsed));
 }
 
