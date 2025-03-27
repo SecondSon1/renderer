@@ -4,6 +4,7 @@
 #include <cmath>
 #include <utility>
 #include "linalg.hpp"
+#include "scene/lighting.hpp"
 
 namespace renderer {
 
@@ -26,6 +27,20 @@ std::vector<Mesh> InitialTransform(std::vector<Mesh>&& meshes) {
   return transformed;
 }
 
+Lighting GenerateLighting() {
+  constexpr double kAmbientLightLevel = 0.1;
+  constexpr double kMainLightLevel = 0.9;
+  Lighting result{};
+  result.emplace_back(AmbientLight{
+      .intensity_ = kAmbientLightLevel,
+  });
+  result.emplace_back(DirectionalLight{
+      .direction_ = Vector3d(1, 0, -1).normalized(),
+      .intensity_ = kMainLightLevel,
+  });
+  return result;
+}
+
 Mat4x4d ExampleTransform(util::Timer::SecondsUnit elapsed) {
   Mat4x4d rotationMatrixX = GetRotationMatrixX(elapsed * 2);
   Mat4x4d rotationMatrixZ = GetRotationMatrixY(elapsed);
@@ -36,7 +51,7 @@ Mat4x4d ExampleTransform(util::Timer::SecondsUnit elapsed) {
 }  // namespace
 
 ExampleScene::ExampleScene(std::vector<Mesh>&& meshes)
-    : Scene(InitialTransform(std::move(meshes))), orig_meshes_(meshes_) {
+    : Scene(InitialTransform(std::move(meshes)), GenerateLighting()), orig_meshes_(meshes_) {
 }
 
 void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {

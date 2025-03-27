@@ -6,32 +6,31 @@
 #include <vector>
 #include <type_traits>
 #include <glog/logging.h>
+#include "util/util.hpp"
 
 namespace renderer {
 
-namespace {
-
-bool IsAlmostZero(double x) {
-  static constexpr double EPS = 1e-10;
-  return std::abs(x) <= EPS;
-}
-
-}  // namespace
-
 Triangle Triangle::Transform(const Mat4x4d& mat) const {
   Triangle result{};
+  result.light_intensity_ = light_intensity_;
   for (size_t i = 0; i < 3; ++i) {
     Eigen::Vector4d vec(0, 0, 0, 1);
     vec.head<3>() = (*this)[i];
     Eigen::Vector4d vecTransformed = mat * vec;
     auto w = vecTransformed[3];
-    if (!IsAlmostZero(w)) {
+    if (util::Sign(w) != 0) {
       vecTransformed *= 1 / w;
     }
     Triangle::Vector newVec = vecTransformed.head<3>();
     result[i] = newVec;
   }
   return result;
+}
+
+Vector3d Triangle::GetNonUnitNormal() const {
+  Vector3d side1 = (*this)[1] - (*this)[0];
+  Vector3d side2 = (*this)[2] - (*this)[0];
+  return side1.cross(side2);
 }
 
 
@@ -56,7 +55,7 @@ Triangle operator+=(Triangle& tri, Triangle::Vector offset) {
 }
 
 Triangle operator+(const Triangle& tri, Triangle::Vector offset) {
-  Triangle res;
+  Triangle res = tri;
   res += offset;
   return res;
 }

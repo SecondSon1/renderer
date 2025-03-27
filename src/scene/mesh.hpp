@@ -13,6 +13,9 @@ struct Triangle :std::array<Vector3d, 3> {
   using std::array<Vector, 3>::array;
 
   Triangle Transform(const Mat4x4d& mat) const;
+  Vector3d GetNonUnitNormal() const;
+
+  double light_intensity_ = 0;
 };
 
 Triangle operator+=(Triangle& tri, Triangle::Vector offset);

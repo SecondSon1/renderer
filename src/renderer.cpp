@@ -6,11 +6,15 @@
 #include <cassert>
 #include <cmath>
 #include <utility>
+#include <variant>
 #include <vector>
 #include <Eigen/Core>
 #include <glog/logging.h>
 #include "util/drawing_primitives.hpp"
 #include "util/util.hpp"
+#include "linalg.hpp"
+#include "scene/mesh.hpp"
+#include "scene/lighting.hpp"
 
 namespace renderer {
 
@@ -101,6 +105,7 @@ ClippedResult<2> ClipAgainstPlane(const Triangle& tri, Vector3d plane_norm, doub
     result.count_ = 1;
     auto clipped = ClipSingleResult(plane_norm, d, tri[positive_inds[0]], tri[negative_inds[0]],
                                     tri[negative_inds[1]]);
+    clipped.light_intensity_ = tri.light_intensity_;
     result.tris_[0] = std::move(clipped);
   } else {
     if (negative_inds[0] == 1) {
@@ -110,6 +115,8 @@ ClippedResult<2> ClipAgainstPlane(const Triangle& tri, Vector3d plane_norm, doub
     result.count_ = 2;
     auto [clipped1, clipped2] = ClipTwoResults(plane_norm, d, tri[positive_inds[0]],
                                                tri[positive_inds[1]], tri[negative_inds[0]]);
+    clipped1.light_intensity_ = tri.light_intensity_;
+    clipped2.light_intensity_ = tri.light_intensity_;
     result.tris_[0] = std::move(clipped1);
     result.tris_[1] = std::move(clipped2);
   }
@@ -198,10 +205,36 @@ std::vector<Triangle> ClipTriangles(const std::vector<Triangle>& mesh, const Cam
 
 bool CullingTest(const Triangle& tri, const Camera& camera) {
   Vector3d look_dir = tri[0];
-  Vector3d tri_side1 = tri[1] - tri[0];
-  Vector3d tri_side2 = tri[2] - tri[0];
-  Vector3d normal = tri_side1.cross(tri_side2);
-  return look_dir.dot(normal) < 0;
+  return look_dir.dot(tri.GetNonUnitNormal()) < 0;
+}
+
+template <class... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
+
+double CalculateLuminance(const Triangle& tri, const DirectionalLight& directional) {
+  assert(util::AlmostEqual(directional.direction_.squaredNorm(), 1));
+  Vector3d tri_normal = tri.GetNonUnitNormal();
+  tri_normal.normalize();
+  double dot = -tri_normal.dot(directional.direction_);
+  return std::max(dot, 0.0) * directional.intensity_;
+}
+
+double CalculateLuminance(const Triangle& tri, const Lighting& lighting) {
+  double result = 0;
+  auto handlers = overloaded{
+      [&result](const AmbientLight& ambient) { result += ambient.intensity_; },
+      [&result, &tri](const DirectionalLight& directional) {
+        result += CalculateLuminance(tri, directional);
+      },
+      [](const PointLightSource& point) { LOG(ERROR) << "Point light not supported yet"; },
+  };
+  for (const LightSource& light_source : lighting) {
+    std::visit(handlers, light_source);
+  }
+  assert(result >= 0);
+  return std::min(result, 1.0);
 }
 
 }  // namespace
@@ -218,12 +251,15 @@ Image Renderer::Render(const Scene* scene, const Camera& camera) {
   Image result = Image(Width(screen_width_), Height(screen_height_));
 
   Mat4x4d world_to_camera = camera.GetWorldToCameraTransform();
+  Lighting lighting = scene->GetLighting();
+
   for (const Mesh& mesh : scene->GetMeshes()) {
     std::vector<Triangle> tris_to_clip;
 
     for (const Triangle& tri : mesh.triangles_) {
       Triangle res = tri;
       res += mesh.local_zero_;
+      res.light_intensity_ = CalculateLuminance(res, lighting);
       res = res.Transform(world_to_camera);
       if (CullingTest(res, camera)) {
         tris_to_clip.emplace_back(std::move(res));
@@ -232,7 +268,12 @@ Image Renderer::Render(const Scene* scene, const Camera& camera) {
     std::vector<Triangle> clipped_triangles = ClipTriangles(tris_to_clip, camera, aspect_ratio);
     for (const Triangle& tri : clipped_triangles) {
       auto tri_projected = tri.Transform(proj_mat);
-      DrawTriangle(result, tri_projected);
+      double luminance = tri.light_intensity_;
+      Pixel result_color;
+      result_color.r = std::round(colors::kWhite.r * luminance);
+      result_color.g = std::round(colors::kWhite.g * luminance);
+      result_color.b = std::round(colors::kWhite.b * luminance);
+      FillTriangle(result, tri_projected, result_color);
     }
   }
   return result;
@@ -278,6 +319,14 @@ void Renderer::DrawTriangle(Image& img, const Triangle& tri) const {
   util::DrawLine(img, v0, v1, colors::kWhite);
   util::DrawLine(img, v0, v2, colors::kWhite);
   util::DrawLine(img, v1, v2, colors::kWhite);
+}
+
+void Renderer::FillTriangle(Image& img, const Triangle& tri, Pixel color) const {
+  Index v0 = NormalizedToIndex(tri[0].head<2>());
+  Index v1 = NormalizedToIndex(tri[1].head<2>());
+  Index v2 = NormalizedToIndex(tri[2].head<2>());
+
+  util::FillTriangle(img, v0, v1, v2, color);
 }
 
 }  // namespace renderer
