@@ -31,7 +31,7 @@ renderer::Application::Application()
 }
 
 void Application::Run() {
-  constexpr size_t kTargetFPS = 35;
+  constexpr size_t kTargetFPS = 70;
   constexpr util::Timer::SecondsUnit kSecondsPerFrame = 1.0 / kTargetFPS;
 
   is_running_ = true;
