@@ -72,7 +72,7 @@ void FillScanline(ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to, P
   assert(from.row_ == to.row_);
   assert(from.col_ <= to.col_);
   if (from.col_ == to.col_) {
-    img[static_cast<Index>(from)].SetIfCloserToCamera(color, from.z_);
+    img[from.ToIndex()].SetIfCloserToCamera(color, from.z_);
     return;
   }
   const double range_len_inv = 1.0 / static_cast<double>(to.col_ - from.col_);
@@ -206,14 +206,14 @@ void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, Ind
   double d1 = v1.row_ - v2.row_;
   double d2 = v2.row_ - v3.row_;
   assert(d1 >= 0 && d2 >= 0);
-  double sum = std::abs(static_cast<double>(v1.col_) - v3.col_);
+  double sum = std::abs(static_cast<double>(v1.col_) - static_cast<double>(v3.col_));
   double t = d1 / (d1 + d2);
   assert(0 <= t && t <= 1);
   double x_from_v1 = sum * t;
   if (v3.col_ < v1.col_) {
     x_from_v1 *= -1;
   }
-  Index v1_v3_intersect_nodepth = (Row(v2.row_), Col(std::round(v1.col_ + x_from_v1)));
+  Index v1_v3_intersect_nodepth = (Row(v2.row_), Col(std::round(static_cast<int32_t>(v1.col_) + x_from_v1)));
   float depth = static_cast<float>(t * v3.z_ + (1 - t) * v1.z_);
   IndexWithDepth v1_v3_intersect = {v1_v3_intersect_nodepth, depth};
   FillTriangleFlatBottom(img, v1, v2, v1_v3_intersect, color);

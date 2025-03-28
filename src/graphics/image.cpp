@@ -6,6 +6,7 @@
 #include <cmath>
 #include <glog/logging.h>
 #include "graphics/sdl_settings.hpp"
+#include "util/parallelism.hpp"
 
 namespace renderer {
 
@@ -28,11 +29,13 @@ Index operator,(Col col, Row row) noexcept {
   return (row, col);
 }
 
+namespace pixel_fmt = SDL::settings::pixel_fmt;
+
 ImageWithDepth::ImageWithDepth(Width width, Height height) noexcept
     : width_(width),
       height_(height),
-      buf_(width * height * SDL::settings::pixel_fmt::kPixelSizeInBytes),
-      z_buf_(width * height, std::numeric_limits<float>::infinity()) {
+      buf_(util::FillParallel<uint8_t>(width * height * pixel_fmt::kPixelSizeInBytes, 0)),
+      z_buf_(util::FillParallel<float>(width * height, std::numeric_limits<float>::infinity())) {
 }
 
 Width ImageWithDepth::GetWidth() const {
@@ -62,7 +65,7 @@ ImageWithDepth::PixelReference ImageWithDepth::operator[](Index idx) {
 }
 
 const void* ImageWithDepth::GetPixelBuffer() const {
-  return static_cast<const void*>(buf_.data());
+  return static_cast<const void*>(&buf_[0]);
 }
 
 size_t ImageWithDepth::GetPixelIndex(Index idx) const {

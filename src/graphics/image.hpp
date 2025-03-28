@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
+#include <memory>
 
 namespace renderer {
 
@@ -97,8 +97,10 @@ class ImageWithDepth {
 
   uint32_t width_;
   uint32_t height_;
-  std::vector<uint8_t> buf_;
-  std::vector<float> z_buf_;
+  //std::vector<uint8_t> buf_;
+  //std::vector<float> z_buf_;
+  std::unique_ptr<uint8_t[]> buf_;
+  std::unique_ptr<float[]> z_buf_;
 };
 
 }  // namespace renderer
