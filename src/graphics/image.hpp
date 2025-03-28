@@ -14,7 +14,10 @@ struct Pixel {
   uint8_t b_;
 };
 
-struct PixelWithDepth : Pixel {
+struct PixelWithDepth {
+  uint8_t r_;
+  uint8_t g_;
+  uint8_t b_;
   float z_;
 
   operator Pixel() const;

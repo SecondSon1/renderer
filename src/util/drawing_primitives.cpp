@@ -13,10 +13,10 @@ namespace renderer {
 namespace util {
 
 void DrawLine(ImageWithDepth& img, Index from, Index to, Pixel color) {
-  assert(0 <= from.col_ && from.col_ < img.GetWidth());
-  assert(0 <= to.col_ && to.col_ < img.GetWidth());
-  assert(0 <= from.row_ && from.row_ < img.GetHeight());
-  assert(0 <= to.row_ && to.row_ < img.GetHeight());
+  assert(0 <= from.col_ && from.col_ < static_cast<uint32_t>(img.GetWidth()));
+  assert(0 <= to.col_ && to.col_ < static_cast<uint32_t>(img.GetWidth()));
+  assert(0 <= from.row_ && from.row_ < static_cast<uint32_t>(img.GetHeight()));
+  assert(0 <= to.row_ && to.row_ < static_cast<uint32_t>(img.GetHeight()));
   if (from.row_ > to.row_ || (from.row_ == to.row_ && from.col_ > to.col_)) {
     std::swap(from, to);
   }
@@ -47,23 +47,25 @@ void DrawLine(ImageWithDepth& img, Index from, Index to, Pixel color) {
 
 namespace {
 
-double InterpolateReciprocal(IndexWithDepth a, IndexWithDepth b, Index point) {
-  int32_t px = static_cast<int32_t>(b.col_) - static_cast<int32_t>(a.col_);
-  int32_t py = static_cast<int32_t>(b.row_) - static_cast<int32_t>(a.row_);
-  int32_t cx = static_cast<int32_t>(point.col_) - static_cast<int32_t>(a.col_);
-  int32_t cy = static_cast<int32_t>(point.row_) - static_cast<int32_t>(a.row_);
+double FindTDiscrete(IndexWithDepth a, IndexWithDepth b, Index point) {
+  int32_t px = static_cast<int32_t>(a.col_) - static_cast<int32_t>(b.col_);
+  int32_t py = static_cast<int32_t>(a.row_) - static_cast<int32_t>(b.row_);
+  if (px == 0 && py == 0) {
+    return 0;
+  }
+  int32_t cx = static_cast<int32_t>(point.col_) - static_cast<int32_t>(b.col_);
+  int32_t cy = static_cast<int32_t>(point.row_) - static_cast<int32_t>(b.row_);
+  double t = static_cast<double>(px * cx + py * cy) / static_cast<double>(px * px + py * py);
+  assert(0 <= t && t <= 1);
   /*
-  double t_x = px == 0 ? 0 : (static_cast<double>(cx) / px);
-  double t_y = py == 0 ? 0 : (static_cast<double>(cy) / py);
-  double t = (t_x + t_y) / 2;
-  */
-  double t = (px * cx + py * cy) / (px * px + py * py);
-  // double den = t / a.z_ + (1 - t) / b.z_;
-  // return 1 / den;
   t = std::min(1.0, t);
   t = std::max(0.0, t);
-  double res = a.z_ * b.z_ / (t * b.z_ + (1 - t) * a.z_);
-  return res;
+  LOG_EVERY_N(INFO, 1000) << a.col_ << " " << a.row_ << " " << b.col_ << " " << b.row_ << " "
+                          << point.col_ << " " << point.row_ << ": d1=" << a.z_ << ", d2=" << b.z_
+                          << "; t = " << t << ", result = " << res;
+  */
+
+  return 1 - t;
 }
 
 void FillScanline(ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to, Pixel color) {
@@ -73,12 +75,12 @@ void FillScanline(ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to, P
     img[static_cast<Index>(from)].SetIfCloserToCamera(color, from.z_);
     return;
   }
-  const double range_len_inv = 1 / (to.col_ - from.col_);
+  const double range_len_inv = 1.0 / static_cast<double>(to.col_ - from.col_);
   for (size_t i = from.col_; i <= to.col_; ++i) {
     double t = (i - from.col_) * range_len_inv;
     assert(0 <= t && t <= 1);
-    // double den = t / from.z_ + (1 - t) / to.z_;
-    double depth = from.z_ * to.z_ / (t * to.z_ + (1 - t) * from.z_);
+    float depth = static_cast<float>(t * to.z_ + (1 - t) * from.z_);
+    //float depth = static_cast<float>(t * from.z_ + (1 - t) * to.z_);
     img[from.row_, Col(i)].SetIfCloserToCamera(color, depth);
   }
 }
@@ -114,21 +116,24 @@ void FillBufferWithLine(std::vector<IndexWithDepth>& buf, IndexWithDepth from, I
     }
     if (y != prev_y) {
       Index pt_nodepth = (Col(prev_x), Row(prev_y));
-      float pt_depth = static_cast<float>(InterpolateReciprocal(from, to, pt_nodepth));
+      double t = FindTDiscrete(from, to, pt_nodepth);
+      float pt_depth = static_cast<float>(t * to.z_ + (1 - t) * from.z_);
       IndexWithDepth res = {pt_nodepth, pt_depth};
       buf.emplace_back(std::move(res));
     }
   }
+  buf.emplace_back(std::move(to));
 }
 
 void FillAreaBetweenTwoSegments(ImageWithDepth& img, IndexWithDepth point, IndexWithDepth v1,
                                 IndexWithDepth v2, Pixel color) {
   assert(v1.row_ == v2.row_);
   if (img.GetHeight() > line_buffer_l.capacity()) {
-    line_buffer_l.reserve(std::max(2 * line_buffer_l.capacity(), static_cast<size_t>(img.GetHeight())));
+    line_buffer_l.reserve(
+        std::max(2 * line_buffer_l.capacity(), static_cast<size_t>(img.GetHeight())));
     line_buffer_r.reserve(line_buffer_r.capacity());
   }
-  
+
   FillBufferWithLine(line_buffer_l, point, v1);
   FillBufferWithLine(line_buffer_r, point, v2);
   assert(line_buffer_l.size() == line_buffer_r.size());
@@ -140,13 +145,12 @@ void FillAreaBetweenTwoSegments(ImageWithDepth& img, IndexWithDepth point, Index
 
 void FillTriangleFlatBottom(ImageWithDepth& img, IndexWithDepth top, IndexWithDepth bottom1,
                             IndexWithDepth bottom2, Pixel color) {
-  // TODO: care about lighting
-  assert(0 <= top.col_ && top.col_ < img.GetWidth());
-  assert(0 <= bottom1.col_ && bottom1.col_ < img.GetWidth());
-  assert(0 <= bottom2.col_ && bottom2.col_ < img.GetWidth());
-  assert(0 <= top.row_ && top.row_ < img.GetHeight());
-  assert(0 <= bottom1.row_ && bottom1.row_ < img.GetHeight());
-  assert(0 <= bottom2.row_ && bottom2.row_ < img.GetHeight());
+  assert(0 <= top.col_ && top.col_ < static_cast<uint32_t>(img.GetWidth()));
+  assert(0 <= bottom1.col_ && bottom1.col_ < static_cast<uint32_t>(img.GetWidth()));
+  assert(0 <= bottom2.col_ && bottom2.col_ < static_cast<uint32_t>(img.GetWidth()));
+  assert(0 <= top.row_ && top.row_ < static_cast<uint32_t>(img.GetHeight()));
+  assert(0 <= bottom1.row_ && bottom1.row_ < static_cast<uint32_t>(img.GetHeight()));
+  assert(0 <= bottom2.row_ && bottom2.row_ < static_cast<uint32_t>(img.GetHeight()));
 
   assert(top.row_ >= bottom1.row_);
   assert(bottom1.row_ == bottom2.row_);
@@ -154,16 +158,16 @@ void FillTriangleFlatBottom(ImageWithDepth& img, IndexWithDepth top, IndexWithDe
     std::swap(bottom1, bottom2);
   }
   FillAreaBetweenTwoSegments(img, top, bottom1, bottom2, color);
+  //DrawLine(img, bottom1, bottom2, {255, 0, 0});
 }
 void FillTriangleFlatTop(ImageWithDepth& img, IndexWithDepth top1, IndexWithDepth top2,
                          IndexWithDepth bottom, Pixel color) {
-  // TODO: care about lighting
-  assert(0 <= top1.col_ && top1.col_ < img.GetWidth());
-  assert(0 <= top2.col_ && top2.col_ < img.GetWidth());
-  assert(0 <= bottom.col_ && bottom.col_ < img.GetWidth());
-  assert(0 <= top1.row_ && top1.row_ < img.GetHeight());
-  assert(0 <= top2.row_ && top2.row_ < img.GetHeight());
-  assert(0 <= bottom.row_ && bottom.row_ < img.GetHeight());
+  assert(0 <= top1.col_ && top1.col_ < static_cast<uint32_t>(img.GetWidth()));
+  assert(0 <= top2.col_ && top2.col_ < static_cast<uint32_t>(img.GetWidth()));
+  assert(0 <= bottom.col_ && bottom.col_ < static_cast<uint32_t>(img.GetWidth()));
+  assert(0 <= top1.row_ && top1.row_ < static_cast<uint32_t>(img.GetHeight()));
+  assert(0 <= top2.row_ && top2.row_ < static_cast<uint32_t>(img.GetHeight()));
+  assert(0 <= bottom.row_ && bottom.row_ < static_cast<uint32_t>(img.GetHeight()));
 
   assert(top1.row_ == top2.row_);
   assert(bottom.row_ <= top1.row_);
@@ -171,6 +175,7 @@ void FillTriangleFlatTop(ImageWithDepth& img, IndexWithDepth top1, IndexWithDept
     std::swap(top1, top2);
   }
   FillAreaBetweenTwoSegments(img, bottom, top1, top2, color);
+  //DrawLine(img, top1, top2, {255, 0, 0});
 }
 
 }  // namespace
@@ -209,8 +214,7 @@ void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, Ind
     x_from_v1 *= -1;
   }
   Index v1_v3_intersect_nodepth = (Row(v2.row_), Col(std::round(v1.col_ + x_from_v1)));
-  double depth_double = 1 / (t / v1.z_ + (1 - t) / v3.z_);
-  float depth = static_cast<float>(depth_double);
+  float depth = static_cast<float>(t * v3.z_ + (1 - t) * v1.z_);
   IndexWithDepth v1_v3_intersect = {v1_v3_intersect_nodepth, depth};
   FillTriangleFlatBottom(img, v1, v2, v1_v3_intersect, color);
   FillTriangleFlatTop(img, v1_v3_intersect, v2, v3, color);

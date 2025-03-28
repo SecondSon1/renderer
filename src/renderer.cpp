@@ -228,7 +228,7 @@ double CalculateLuminance(const Triangle& tri, const Lighting& lighting) {
       [&result, &tri](const DirectionalLight& directional) {
         result += CalculateLuminance(tri, directional);
       },
-      [](const PointLightSource& point) { LOG(ERROR) << "Point light not supported yet"; },
+      [](const PointLightSource& point) { LOG(FATAL) << "Point light not supported yet"; },
   };
   for (const LightSource& light_source : lighting) {
     std::visit(handlers, light_source);

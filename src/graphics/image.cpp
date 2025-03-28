@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cstdint>
 #include <limits>
+#include <cmath>
+#include <glog/logging.h>
 #include "graphics/sdl_settings.hpp"
 
 namespace renderer {
@@ -117,7 +119,8 @@ ImageWithDepth::PixelReference ImageWithDepth::PixelReference::SetZ(float z) {
 
 ImageWithDepth::PixelReference ImageWithDepth::PixelReference::SetIfCloserToCamera(
     Pixel pixel, float pixel_depth) {
-  if (ReadZ() > pixel_depth) {
+  float cur = ReadZ();
+  if (cur > pixel_depth) {
     *this = pixel;
     ReadZ() = pixel_depth;
   }
