@@ -8,11 +8,47 @@ namespace renderer {
 enum Width : uint32_t;
 enum Height : uint32_t;
 
+class HDRPixel;
+
 struct Pixel {
   uint8_t r_;
   uint8_t g_;
   uint8_t b_;
+
+  operator HDRPixel() const;
+
+  static Pixel FromHDR(HDRPixel hdr_pixel);
 };
+
+class HDRPixel {
+ public:
+  HDRPixel() = default;
+  HDRPixel(float r, float g, float b);
+
+  explicit operator Pixel() const;
+
+  HDRPixel &operator+=(HDRPixel rhs);
+  HDRPixel &operator-=(HDRPixel rhs);
+  HDRPixel &operator*=(float scalar);
+  HDRPixel &operator/=(float scalar);
+
+  void SetR(float new_r);
+  void SetG(float new_g);
+  void SetB(float new_b);
+
+  static HDRPixel FromPixel(Pixel pixel);
+
+ private:
+  float r_ = 0;
+  float g_ = 0;
+  float b_ = 0;
+};
+
+HDRPixel operator+(HDRPixel lhs, HDRPixel rhs);
+HDRPixel operator-(HDRPixel lhs, HDRPixel rhs);
+HDRPixel operator*(HDRPixel pix, float scalar);
+HDRPixel operator*(float scalar, HDRPixel pix);
+HDRPixel operator/(HDRPixel pix, float scalar);
 
 struct PixelWithDepth {
   uint8_t r_;
@@ -21,12 +57,20 @@ struct PixelWithDepth {
   float z_;
 
   operator Pixel() const;
+
+  PixelWithDepth &operator=(Pixel pixel);
 };
 
 namespace colors {
 
 constexpr Pixel kWhite = {.r_ = 255, .g_ = 255, .b_ = 255};
 constexpr Pixel kBlack = {.r_ = 0, .g_ = 0, .b_ = 0};
+constexpr Pixel kRed = {.r_ = 255, .g_ = 0, .b_ = 0};
+constexpr Pixel kGreen = {.r_ = 0, .g_ = 255, .b_ = 0};
+constexpr Pixel kBlue = {.r_ = 0, .g_ = 0, .b_ = 255};
+constexpr Pixel kYellow = {.r_ = 255, .g_ = 255, .b_ = 0};
+constexpr Pixel kCyan = {.r_ = 0, .g_ = 255, .b_ = 255};
+constexpr Pixel kMagenta = {.r_ = 255, .g_ = 0, .b_ = 255};
 
 }  // namespace colors
 
@@ -97,8 +141,8 @@ class ImageWithDepth {
 
   uint32_t width_;
   uint32_t height_;
-  //std::vector<uint8_t> buf_;
-  //std::vector<float> z_buf_;
+  // std::vector<uint8_t> buf_;
+  // std::vector<float> z_buf_;
   std::unique_ptr<uint8_t[]> buf_;
   std::unique_ptr<float[]> z_buf_;
 };

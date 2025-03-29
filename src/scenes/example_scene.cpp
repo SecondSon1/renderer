@@ -32,15 +32,28 @@ Lighting GenerateLighting() {
   constexpr double kMainLightLevel = 0.9;
   Lighting result{};
   result.emplace_back(AmbientLight{
-      .intensity_ = kAmbientLightLevel,
+      {
+          .intensity_ = kAmbientLightLevel,
+          .color_ = colors::kWhite,
+      },
   });
+  const Vector3d first_light_dir = Vector3d(0.2, -1, 0.4).normalized();
+  Pixel first_light_color = Pixel::FromHDR(colors::kBlue * 0.3f);
   result.emplace_back(DirectionalLight{
-      .direction_ = Vector3d(0.2, -1, 0.4).normalized(),
-      .intensity_ = kMainLightLevel / 4,
+      {
+          .intensity_ = kMainLightLevel / 4,
+          .color_ = first_light_color,
+      },
+      first_light_dir,
   });
+  const Vector3d second_light_dir = Vector3d(1, 0, -1.5).normalized();
+  Pixel second_light_color = {.r_ = 0xf1, .g_ = 0xeb, .b_ = 0xc8};
   result.emplace_back(DirectionalLight{
-      .direction_ = Vector3d(1, 0, -1.5).normalized(),
-      .intensity_ = kMainLightLevel / 4 * 3,
+      {
+          .intensity_ = kMainLightLevel / 4 * 3,
+          .color_ = second_light_color,
+      },
+      second_light_dir,
   });
   return result;
 }

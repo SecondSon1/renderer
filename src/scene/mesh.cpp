@@ -12,7 +12,7 @@ namespace renderer {
 
 Triangle Triangle::Transform(const Mat4x4d& mat) const {
   Triangle result{};
-  result.light_intensity_ = light_intensity_;
+  result.color_ = color_;
   for (size_t i = 0; i < 3; ++i) {
     Eigen::Vector4d vec(0, 0, 0, 1);
     vec.head<3>() = (*this)[i];

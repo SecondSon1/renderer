@@ -4,6 +4,7 @@
 #include <sstream>
 #include <optional>
 #include <glog/logging.h>
+#include "util/util.hpp"
 
 namespace renderer {
 
@@ -132,11 +133,6 @@ std::optional<ObjParser::Entry> ObjParser::GetNextSkipUnsupported() noexcept {
 
 namespace {
 
-template <class... Ts>
-struct overloaded : Ts... {
-  using Ts::operator()...;
-};
-
 template <typename T, typename... U>
 using are_all_same = std::integral_constant<bool, (... && std::is_same_v<T, U>)>;
 
@@ -182,13 +178,13 @@ Mesh ObjParser::ConstructMesh() {
   std::vector<Triangle::Vector> vertices;
   std::vector<Triangle> result;
 
-  auto handlers = overloaded{[&vertices](ObjParser::VertexEntry entry) {
-                               vertices.emplace_back(GetVertexFromEntry(entry));
-                             },
-                             [&vertices, &result](ObjParser::FaceEntry entry) {
-                               result.emplace_back(GetFaceFromEntry(entry, vertices));
-                             },
-                             [](ObjParser::UnsupportedEntry) {}};
+  auto handlers = util::overloaded{[&vertices](ObjParser::VertexEntry entry) {
+                                     vertices.emplace_back(GetVertexFromEntry(entry));
+                                   },
+                                   [&vertices, &result](ObjParser::FaceEntry entry) {
+                                     result.emplace_back(GetFaceFromEntry(entry, vertices));
+                                   },
+                                   [](ObjParser::UnsupportedEntry) {}};
 
   while ((next_entry = GetNextSkipUnsupported())) {
     std::visit(handlers, next_entry.value());

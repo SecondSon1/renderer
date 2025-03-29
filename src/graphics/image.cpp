@@ -1,5 +1,6 @@
 #include <graphics/image.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <limits>
@@ -7,8 +8,86 @@
 #include <glog/logging.h>
 #include "graphics/sdl_settings.hpp"
 #include "util/parallelism.hpp"
+#include "util/util.hpp"
 
 namespace renderer {
+
+Pixel::operator HDRPixel() const {
+  constexpr float uint8_range_inv = 1.f / 255.f;
+  return {
+      static_cast<float>(r_) * uint8_range_inv,
+      static_cast<float>(g_) * uint8_range_inv,
+      static_cast<float>(b_) * uint8_range_inv,
+  };
+}
+
+Pixel Pixel::FromHDR(HDRPixel hdr_pixel) {
+  return static_cast<Pixel>(hdr_pixel);
+}
+
+namespace {
+
+float ClampTo01(float x) {
+  return std::clamp(x, 0.f, 1.f);
+}
+
+}  // namespace
+
+HDRPixel::HDRPixel(float r, float g, float b)
+    : r_(ClampTo01(r)), g_(ClampTo01(g)), b_(ClampTo01(b)) {
+}
+
+HDRPixel::operator Pixel() const {
+  constexpr float uint8_range = 255.f;
+  return {
+      .r_ = static_cast<uint8_t>(std::round(r_ * uint8_range)),
+      .g_ = static_cast<uint8_t>(std::round(g_ * uint8_range)),
+      .b_ = static_cast<uint8_t>(std::round(b_ * uint8_range)),
+  };
+}
+
+HDRPixel& HDRPixel::operator+=(HDRPixel rhs) {
+  SetR(r_ + rhs.r_);
+  SetG(g_ + rhs.g_);
+  SetB(b_ + rhs.b_);
+  return *this;
+}
+
+HDRPixel& HDRPixel::operator-=(HDRPixel rhs) {
+  SetR(r_ - rhs.r_);
+  SetG(g_ - rhs.g_);
+  SetB(b_ - rhs.b_);
+  return *this;
+}
+
+HDRPixel& HDRPixel::operator*=(float scalar) {
+  assert(util::Sign(scalar) >= 0);
+  SetR(r_ * scalar);
+  SetG(g_ * scalar);
+  SetB(b_ * scalar);
+  return *this;
+}
+
+HDRPixel& HDRPixel::operator/=(float scalar) {
+  assert(util::Sign(scalar) > 0);
+  return *this *= (1 / scalar);
+}
+
+void HDRPixel::SetR(float new_r) {
+  r_ = ClampTo01(new_r);
+}
+
+void HDRPixel::SetG(float new_g) {
+  g_ = ClampTo01(new_g);
+}
+
+void HDRPixel::SetB(float new_b) {
+  b_ = ClampTo01(new_b);
+}
+
+HDRPixel HDRPixel::FromPixel(Pixel pixel) {
+  return pixel;
+}
 
 PixelWithDepth::operator Pixel() const {
   Pixel result;
@@ -16,6 +95,38 @@ PixelWithDepth::operator Pixel() const {
   result.g_ = g_;
   result.b_ = b_;
   return result;
+}
+
+PixelWithDepth& PixelWithDepth::operator=(Pixel pixel) {
+  r_ = pixel.r_;
+  g_ = pixel.g_;
+  b_ = pixel.b_;
+  return *this;
+}
+
+HDRPixel operator+(HDRPixel lhs, HDRPixel rhs) {
+  lhs += rhs;
+  return lhs;
+}
+
+HDRPixel operator-(HDRPixel lhs, HDRPixel rhs) {
+  lhs -= rhs;
+  return lhs;
+}
+
+HDRPixel operator*(HDRPixel pix, float scalar) {
+  pix *= scalar;
+  return pix;
+}
+
+HDRPixel operator*(float scalar, HDRPixel pix) {
+  pix *= scalar;
+  return pix;
+}
+
+HDRPixel operator/(HDRPixel pix, float scalar) {
+  pix /= scalar;
+  return pix;
 }
 
 Index operator,(Row row, Col col) noexcept {

@@ -2,24 +2,31 @@
 
 #include <variant>
 #include "linalg.hpp"
+#include "graphics/image.hpp"
 
 namespace renderer {
 
-struct AmbientLight {
+struct LightSourceBase {
   double intensity_;
+  Pixel color_;
 };
 
-struct DirectionalLight {
+struct AmbientLight : public LightSourceBase {};
+
+struct DirectionalLight : public LightSourceBase {
   Vector3d direction_;
-  double intensity_;
 };
 
-struct PointLightSource {
-  Vector3d position_;
-  double intensity_;
+struct PointLightSource : public LightSourceBase {
+  Vector3d origin_;
 };
 
-using LightSource = std::variant<AmbientLight, DirectionalLight, PointLightSource>;
+struct LightSource : public std::variant<AmbientLight, DirectionalLight, PointLightSource> {
+  using std::variant<AmbientLight, DirectionalLight, PointLightSource>::variant;
+
+  LightSourceBase GetBase() const;
+};
+
 struct Lighting : std::vector<LightSource> {
   using std::vector<LightSource>::vector;
 };

@@ -5,6 +5,7 @@
 #include <Eigen/Core>
 #include "fs/obj_parser.hpp"
 #include "linalg.hpp"
+#include "graphics/image.hpp"
 
 namespace renderer {
 
@@ -15,7 +16,7 @@ struct Triangle :std::array<Vector3d, 3> {
   Triangle Transform(const Mat4x4d& mat) const;
   Vector3d GetNonUnitNormal() const;
 
-  double light_intensity_ = 0;
+  Pixel color_;
 };
 
 Triangle operator+=(Triangle& tri, Triangle::Vector offset);

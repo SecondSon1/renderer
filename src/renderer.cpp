@@ -15,6 +15,7 @@
 #include "linalg.hpp"
 #include "scene/mesh.hpp"
 #include "scene/lighting.hpp"
+#include "graphics/image.hpp"
 
 namespace renderer {
 
@@ -105,7 +106,7 @@ ClippedResult<2> ClipAgainstPlane(const Triangle& tri, Vector3d plane_norm, doub
     result.count_ = 1;
     auto clipped = ClipSingleResult(plane_norm, d, tri[positive_inds[0]], tri[negative_inds[0]],
                                     tri[negative_inds[1]]);
-    clipped.light_intensity_ = tri.light_intensity_;
+    clipped.color_ = tri.color_;
     result.tris_[0] = std::move(clipped);
   } else {
     if (negative_inds[0] == 1) {
@@ -115,8 +116,8 @@ ClippedResult<2> ClipAgainstPlane(const Triangle& tri, Vector3d plane_norm, doub
     result.count_ = 2;
     auto [clipped1, clipped2] = ClipTwoResults(plane_norm, d, tri[positive_inds[0]],
                                                tri[positive_inds[1]], tri[negative_inds[0]]);
-    clipped1.light_intensity_ = tri.light_intensity_;
-    clipped2.light_intensity_ = tri.light_intensity_;
+    clipped1.color_ = tri.color_;
+    clipped2.color_ = tri.color_;
     result.tris_[0] = std::move(clipped1);
     result.tris_[1] = std::move(clipped2);
   }
@@ -208,33 +209,40 @@ bool CullingTest(const Triangle& tri, const Camera& camera) {
   return look_dir.dot(tri.GetNonUnitNormal()) < 0;
 }
 
-template <class... Ts>
-struct overloaded : Ts... {
-  using Ts::operator()...;
-};
-
-double CalculateLuminance(const Triangle& tri, const DirectionalLight& directional) {
+HDRPixel CalculateLightColor(const Triangle& tri, const DirectionalLight& directional,
+                             float normalized_intensity) {
   assert(util::AlmostEqual(directional.direction_.squaredNorm(), 1));
   Vector3d tri_normal = tri.GetNonUnitNormal();
   tri_normal.normalize();
-  double dot = -tri_normal.dot(directional.direction_);
-  return std::max(dot, 0.0) * directional.intensity_;
+  double dot = tri_normal.dot(directional.direction_);
+  float blending_coef = std::max(-dot, 0.0);
+  return directional.color_ * (normalized_intensity * blending_coef);
 }
 
-double CalculateLuminance(const Triangle& tri, const Lighting& lighting) {
-  double result = 0;
-  auto handlers = overloaded{
-      [&result](const AmbientLight& ambient) { result += ambient.intensity_; },
-      [&result, &tri](const DirectionalLight& directional) {
-        result += CalculateLuminance(tri, directional);
+HDRPixel CalculateLightColor(const Triangle& tri, const Lighting& lighting) {
+  double intensity = 0;
+  HDRPixel result{};
+  for (const LightSource& light_source : lighting) {
+    float cur_intensity = light_source.GetBase().intensity_;
+    assert(util::Sign(cur_intensity) > 0);
+    intensity += cur_intensity;
+  }
+  assert(util::Sign(intensity) > 0);
+  const double intensity_inv = 1 / intensity;
+
+  auto handlers = util::overloaded{
+      [&result, intensity_inv](const AmbientLight& ambient) {
+        result += ambient.color_ * (ambient.intensity_ * intensity_inv);
+      },
+      [&result, &tri, intensity_inv](const DirectionalLight& directional) {
+        result += CalculateLightColor(tri, directional, directional.intensity_ * intensity_inv);
       },
       [](const PointLightSource& point) { LOG(FATAL) << "Point light not supported yet"; },
   };
   for (const LightSource& light_source : lighting) {
     std::visit(handlers, light_source);
   }
-  assert(result >= 0);
-  return std::min(result, 1.0);
+  return result;
 }
 
 }  // namespace
@@ -259,7 +267,7 @@ ImageWithDepth Renderer::Render(const Scene* scene, const Camera& camera) {
     for (const Triangle& tri : mesh.triangles_) {
       Triangle res = tri;
       res += mesh.local_zero_;
-      res.light_intensity_ = CalculateLuminance(res, lighting);
+      res.color_ = static_cast<Pixel>(CalculateLightColor(res, lighting));
       res = res.Transform(world_to_camera);
       if (CullingTest(res, camera)) {
         tris_to_clip.emplace_back(std::move(res));
@@ -268,12 +276,7 @@ ImageWithDepth Renderer::Render(const Scene* scene, const Camera& camera) {
     std::vector<Triangle> clipped_triangles = ClipTriangles(tris_to_clip, camera, aspect_ratio);
     for (const Triangle& tri : clipped_triangles) {
       auto tri_projected = tri.Transform(proj_mat);
-      double luminance = tri.light_intensity_;
-      Pixel result_color;
-      result_color.r_ = std::round(colors::kWhite.r_ * luminance);
-      result_color.g_ = std::round(colors::kWhite.g_ * luminance);
-      result_color.b_ = std::round(colors::kWhite.b_ * luminance);
-      FillTriangle(result, tri_projected, result_color);
+      FillTriangle(result, tri_projected, tri.color_);
     }
   }
   return result;
