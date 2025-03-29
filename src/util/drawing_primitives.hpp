@@ -3,26 +3,31 @@
 #include <utility>
 #include "graphics/image.hpp"
 #include "scene/mesh.hpp"
+#include "fs/texture_reader.hpp"
 
 namespace renderer {
 
 namespace util {
 
-struct IndexWithDepth : Index {
+struct IndexWithTex : Index {
+  Vector2d tex_;
+};
+
+struct IndexWithDepth : IndexWithTex {
   float z_;
 
-  Index ToIndex() const {
-    Index result = {
+  IndexWithTex ToIndex() const {
+    Index result_ind = {
         .row_ = row_,
         .col_ = col_,
     };
-    return result;
+    return {result_ind, tex_};
   }
 };
 
 void DrawLine(ImageWithDepth& img, Index from, Index to, Pixel color);
 void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, IndexWithDepth v3,
-                  Pixel color);
+                  const Texture& tex, Pixel lighting_color, bool is_tex);
 
 }  // namespace util
 

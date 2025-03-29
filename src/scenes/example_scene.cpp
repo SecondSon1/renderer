@@ -67,13 +67,14 @@ Mat4x4d ExampleTransform(util::Timer::SecondsUnit elapsed) {
 
 }  // namespace
 
-ExampleScene::ExampleScene(std::vector<Mesh>&& meshes)
-    : Scene(InitialTransform(std::move(meshes)), GenerateLighting()), orig_meshes_(meshes_) {
+ExampleScene::ExampleScene(std::vector<Mesh>&& meshes, Texture&& texture)
+    : Scene(InitialTransform(std::move(meshes)), GenerateLighting(), std::move(texture)),
+      orig_meshes_(meshes_),
+      orig_lighting_(lighting_) {
 }
 
 void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {
   time_since_start_ += seconds_elapsed;
-  return;
   size_t mesh_to_transform = 0;
   auto example_transformation = ExampleTransform(time_since_start_);
 
@@ -84,6 +85,15 @@ void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {
   for (size_t idx = 0; idx < orig_mesh.size(); ++idx) {
     mesh_tt[idx] = orig_mesh[idx].Transform(example_transformation);
   }
+
+  constexpr double kLightingChangeSpeed = 0.2;
+  lighting_ = orig_lighting_;
+  auto& changing_light_source = std::get<DirectionalLight>(lighting_[1]);
+  double x = 0.3;
+  double y = std::sin(time_since_start_ * kLightingChangeSpeed);
+  double z = std::cos(time_since_start_ * kLightingChangeSpeed);
+  changing_light_source.direction_ = Vector3d(x, y, z);
+  changing_light_source.direction_.normalize();
 }
 
 }  // namespace example

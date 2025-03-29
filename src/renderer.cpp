@@ -37,37 +37,72 @@ struct ClippedResult {
   }
 };
 
-Vector3d IntersectPlaneAndLine(Vector3d plane_norm, double d, Vector3d line_start,
-                               Vector3d line_dir) {
-  double num = -(plane_norm.dot(line_start) + d);
+struct CoordAndTex {
+  Vector3d cds_;
+  Vector2d tex_;
+};
+
+CoordAndTex IntersectPlaneAndLine(Vector3d plane_norm, double d, CoordAndTex line_start,
+                                  CoordAndTex line_end) {
+  Vector3d line_dir = line_end.cds_ - line_start.cds_;
+  double num = -(plane_norm.dot(line_start.cds_) + d);
   double den = plane_norm.dot(line_dir);
   double t = util::Sign(den) == 0 ? 0 : (num / den);
-  return line_start + line_dir * t;
+  Vector3d res_cds = line_start.cds_ + line_dir * t;
+  Vector2d tex_interpolated = (1 - t) * line_start.tex_ + t * line_end.tex_;
+  return {res_cds, tex_interpolated};
 }
 
-Triangle ClipSingleResult(Vector3d plane_norm, double d, Vector3d inside, Vector3d outside1,
-                          Vector3d outside2) {
+Triangle ClipSingleResult(Vector3d plane_norm, double d, CoordAndTex inside, CoordAndTex outside1,
+                          CoordAndTex outside2, bool has_tex) {
   Triangle result{};
-  result[0] = inside;
-  result[1] = IntersectPlaneAndLine(plane_norm, d, inside, outside1 - inside);
-  result[2] = IntersectPlaneAndLine(plane_norm, d, inside, outside2 - inside);
+  result[0] = inside.cds_;
+  auto [vec1, tex1] = IntersectPlaneAndLine(plane_norm, d, inside, outside1);
+  result[1] = vec1;
+  auto [vec2, tex2] = IntersectPlaneAndLine(plane_norm, d, inside, outside2);
+  result[2] = vec2;
+  if (has_tex) {
+    result.texture_vertices_ = std::array<Triangle::TexVector, 3>();
+    auto& tex_vertices = result.texture_vertices_.value();
+    tex_vertices[0] = inside.tex_;
+    tex_vertices[1] = tex1;
+    tex_vertices[2] = tex2;
+  }
   return result;
 }
 
-std::pair<Triangle, Triangle> ClipTwoResults(Vector3d plane_norm, double d, Vector3d inside1,
-                                             Vector3d inside2, Vector3d outside) {
-  Vector3d intersect1 = IntersectPlaneAndLine(plane_norm, d, outside, inside1 - outside);
-  Vector3d intersect2 = IntersectPlaneAndLine(plane_norm, d, outside, inside2 - outside);
+std::pair<Triangle, Triangle> ClipTwoResults(Vector3d plane_norm, double d, CoordAndTex inside1,
+                                             CoordAndTex inside2, CoordAndTex outside,
+                                             bool has_tex) {
+  auto [vec1, tex1] = IntersectPlaneAndLine(plane_norm, d, outside, inside1);
+  auto [vec2, tex2] = IntersectPlaneAndLine(plane_norm, d, outside, inside2);
 
   Triangle result1{};
-  result1[0] = inside1;
-  result1[1] = inside2;
-  result1[2] = intersect1;
+  result1[0] = inside1.cds_;
+  result1[1] = inside2.cds_;
+  result1[2] = vec1;
 
   Triangle result2{};
-  result2[0] = intersect1;
-  result2[1] = inside2;
-  result2[2] = intersect2;
+  result2[0] = vec1;
+  result2[1] = inside2.cds_;
+  result2[2] = vec2;
+
+  if (has_tex) {
+    result1.texture_vertices_ = std::array<Triangle::TexVector, 3>();
+    result2.texture_vertices_ = std::array<Triangle::TexVector, 3>();
+
+    auto& tex_vertices1 = result1.texture_vertices_.value();
+    auto& tex_vertices2 = result2.texture_vertices_.value();
+
+    tex_vertices1[0] = inside1.tex_;
+    tex_vertices1[1] = inside2.tex_;
+    tex_vertices1[2] = tex1;
+
+    tex_vertices2[0] = tex1;
+    tex_vertices2[1] = inside2.tex_;
+    tex_vertices2[2] = tex2;
+  }
+
   return {std::move(result1), std::move(result2)};
 }
 
@@ -104,8 +139,17 @@ ClippedResult<2> ClipAgainstPlane(const Triangle& tri, Vector3d plane_norm, doub
     }
 
     result.count_ = 1;
-    auto clipped = ClipSingleResult(plane_norm, d, tri[positive_inds[0]], tri[negative_inds[0]],
-                                    tri[negative_inds[1]]);
+    CoordAndTex inside = {tri[positive_inds[0]]};
+    CoordAndTex outside1 = {tri[negative_inds[0]]};
+    CoordAndTex outside2 = {tri[negative_inds[1]]};
+    if (tri.texture_vertices_) {
+      auto& texes = tri.texture_vertices_.value();
+      inside.tex_ = texes[positive_inds[0]];
+      outside1.tex_ = texes[negative_inds[0]];
+      outside2.tex_ = texes[negative_inds[1]];
+    }
+    auto clipped = ClipSingleResult(plane_norm, d, inside, outside1, outside2,
+                                    static_cast<bool>(tri.texture_vertices_));
     clipped.color_ = tri.color_;
     result.tris_[0] = std::move(clipped);
   } else {
@@ -114,8 +158,17 @@ ClippedResult<2> ClipAgainstPlane(const Triangle& tri, Vector3d plane_norm, doub
     }
 
     result.count_ = 2;
-    auto [clipped1, clipped2] = ClipTwoResults(plane_norm, d, tri[positive_inds[0]],
-                                               tri[positive_inds[1]], tri[negative_inds[0]]);
+    CoordAndTex inside1 = {tri[positive_inds[0]]};
+    CoordAndTex inside2 = {tri[positive_inds[1]]};
+    CoordAndTex outside = {tri[negative_inds[0]]};
+    if (tri.texture_vertices_) {
+      auto& texes = tri.texture_vertices_.value();
+      inside1.tex_ = texes[positive_inds[0]];
+      inside2.tex_ = texes[positive_inds[1]];
+      outside.tex_ = texes[negative_inds[0]];
+    }
+    auto [clipped1, clipped2] = ClipTwoResults(plane_norm, d, inside1, inside2, outside,
+                                               static_cast<bool>(tri.texture_vertices_));
     clipped1.color_ = tri.color_;
     clipped2.color_ = tri.color_;
     result.tris_[0] = std::move(clipped1);
@@ -260,6 +313,7 @@ ImageWithDepth Renderer::Render(const Scene* scene, const Camera& camera) {
 
   Mat4x4d world_to_camera = camera.GetWorldToCameraTransform();
   Lighting lighting = scene->GetLighting();
+  const Texture& tex = scene->GetTexture();
 
   for (const Mesh& mesh : scene->GetMeshes()) {
     std::vector<Triangle> tris_to_clip;
@@ -276,7 +330,7 @@ ImageWithDepth Renderer::Render(const Scene* scene, const Camera& camera) {
     std::vector<Triangle> clipped_triangles = ClipTriangles(tris_to_clip, camera, aspect_ratio);
     for (const Triangle& tri : clipped_triangles) {
       auto tri_projected = tri.Transform(proj_mat);
-      FillTriangle(result, tri_projected, tri.color_);
+      FillTriangle(result, tri_projected, tex, tri.color_);
     }
   }
   return result;
@@ -324,16 +378,28 @@ void Renderer::DrawTriangle(ImageWithDepth& img, const Triangle& tri) const {
   util::DrawLine(img, v1, v2, colors::kWhite);
 }
 
-void Renderer::FillTriangle(ImageWithDepth& img, const Triangle& tri, Pixel color) const {
+void Renderer::FillTriangle(ImageWithDepth& img, const Triangle& tri, const Texture& tex,
+                            Pixel lighting_color) const {
   Index v0 = NormalizedToIndex(tri[0].head<2>());
   Index v1 = NormalizedToIndex(tri[1].head<2>());
   Index v2 = NormalizedToIndex(tri[2].head<2>());
 
-  util::IndexWithDepth v0d = {v0, static_cast<float>(tri[0][2])};
-  util::IndexWithDepth v1d = {v1, static_cast<float>(tri[1][2])};
-  util::IndexWithDepth v2d = {v2, static_cast<float>(tri[2][2])};
+  util::IndexWithTex v0t = {v0};
+  util::IndexWithTex v1t = {v1};
+  util::IndexWithTex v2t = {v2};
+  if (tri.texture_vertices_) {
+    auto& tex_vert = tri.texture_vertices_.value();
+    v0t.tex_ = tex_vert[0];
+    v1t.tex_ = tex_vert[1];
+    v2t.tex_ = tex_vert[2];
+  }
 
-  util::FillTriangle(img, v0d, v1d, v2d, color);
+  util::IndexWithDepth v0d = {v0t, static_cast<float>(tri[0][2])};
+  util::IndexWithDepth v1d = {v1t, static_cast<float>(tri[1][2])};
+  util::IndexWithDepth v2d = {v2t, static_cast<float>(tri[2][2])};
+
+  util::FillTriangle(img, v0d, v1d, v2d, tex, lighting_color,
+                     static_cast<bool>(tri.texture_vertices_));
 }
 
 }  // namespace renderer

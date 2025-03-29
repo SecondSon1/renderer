@@ -69,7 +69,11 @@ std::unique_ptr<Scene> Application::LoadScene() const {
   DataLoader loader(kDatalistFilePath);
   std::vector<Mesh> objects = loader.GetAllObjects();
 
-  return std::make_unique<example::ExampleScene>(std::move(objects));
+  std::string path_to_tex = "data/gentle-giant.jpg";
+  std::filesystem::path fs_path(path_to_tex);
+  Texture texture = TextureReader::LoadImage(fs_path);
+
+  return std::make_unique<example::ExampleScene>(std::move(objects), std::move(texture));
 }
 
 Camera Application::InitializeCamera() const {

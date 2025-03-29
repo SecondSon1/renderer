@@ -30,6 +30,7 @@ class HDRPixel {
   HDRPixel &operator+=(HDRPixel rhs);
   HDRPixel &operator-=(HDRPixel rhs);
   HDRPixel &operator*=(float scalar);
+  HDRPixel &operator*=(HDRPixel rhs);
   HDRPixel &operator/=(float scalar);
 
   void SetR(float new_r);

@@ -14,7 +14,10 @@ struct Mesh;
 class ObjParser {
  public:
   struct VertexEntry : public renderer::Vector3d {
-    using renderer::Vector3d::Vector3d;
+    using Vector3d::Vector3d;
+  };
+  struct VertexTextureEntry : public renderer::Vector2d {
+    using Vector2d::Vector2d;
   };
   struct FaceEntry {
     using IndexArray = std::array<size_t, 3>;
@@ -24,7 +27,7 @@ class ObjParser {
   };
   struct UnsupportedEntry {};
 
-  using Entry = std::variant<VertexEntry, FaceEntry, UnsupportedEntry>;
+  using Entry = std::variant<VertexEntry, VertexTextureEntry, FaceEntry, UnsupportedEntry>;
 
  public:
   ObjParser(std::istream& stream);

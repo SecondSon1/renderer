@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <array>
+#include <optional>
 #include <Eigen/Core>
 #include "fs/obj_parser.hpp"
 #include "linalg.hpp"
@@ -9,14 +10,16 @@
 
 namespace renderer {
 
-struct Triangle :std::array<Vector3d, 3> {
+struct Triangle : std::array<Vector3d, 3> {
   using Vector = Vector3d;
+  using TexVector = Vector2d;
   using std::array<Vector, 3>::array;
 
   Triangle Transform(const Mat4x4d& mat) const;
   Vector3d GetNonUnitNormal() const;
 
   Pixel color_;
+  std::optional<std::array<TexVector, 3>> texture_vertices_;
 };
 
 Triangle operator+=(Triangle& tri, Triangle::Vector offset);

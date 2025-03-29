@@ -68,11 +68,22 @@ double FindTDiscrete(IndexWithDepth a, IndexWithDepth b, Index point) {
   return 1 - t;
 }
 
-void FillScanline(ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to, Pixel color) {
+Pixel FetchColorFromTexture(const Texture& tex, Vector2d tex_cds) {
+  assert(0 <= tex_cds[0] && tex_cds[0] <= 1);
+  assert(0 <= tex_cds[1] && tex_cds[1] <= 1);
+  uint32_t row = std::round(tex_cds[1] * (tex.GetHeight() - 1));
+  uint32_t col = std::round(tex_cds[0] * (tex.GetWidth() - 1));
+  return tex[Row(row), Col(col)];
+}
+
+void FillScanline(const Texture& tex, ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to,
+                  Pixel lighting_color, bool is_tex) {
   assert(from.row_ == to.row_);
   assert(from.col_ <= to.col_);
   if (from.col_ == to.col_) {
-    img[from.ToIndex()].SetIfCloserToCamera(color, from.z_);
+    auto color = HDRPixel::FromPixel(is_tex ? FetchColorFromTexture(tex, from.tex_) : colors::kWhite);
+    color *= lighting_color;
+    img[from.ToIndex()].SetIfCloserToCamera(Pixel::FromHDR(color), from.z_);
     return;
   }
   const double range_len_inv = 1.0 / static_cast<double>(to.col_ - from.col_);
@@ -80,8 +91,11 @@ void FillScanline(ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to, P
     double t = (i - from.col_) * range_len_inv;
     assert(0 <= t && t <= 1);
     float depth = static_cast<float>(t * to.z_ + (1 - t) * from.z_);
-    //float depth = static_cast<float>(t * from.z_ + (1 - t) * to.z_);
-    img[from.row_, Col(i)].SetIfCloserToCamera(color, depth);
+    // float depth = static_cast<float>(t * from.z_ + (1 - t) * to.z_);
+    Vector2d tex_vec = (1 - t) * from.tex_ + t * to.tex_;
+    auto color = HDRPixel::FromPixel(is_tex ? FetchColorFromTexture(tex, tex_vec) : colors::kWhite);
+    color *= lighting_color;
+    img[from.row_, Col(i)].SetIfCloserToCamera(Pixel::FromHDR(color), depth);
   }
 }
 
@@ -118,15 +132,16 @@ void FillBufferWithLine(std::vector<IndexWithDepth>& buf, IndexWithDepth from, I
       Index pt_nodepth = (Col(prev_x), Row(prev_y));
       double t = FindTDiscrete(from, to, pt_nodepth);
       float pt_depth = static_cast<float>(t * to.z_ + (1 - t) * from.z_);
-      IndexWithDepth res = {pt_nodepth, pt_depth};
+      IndexWithTex pt_tex = {pt_nodepth, (1 - t) * from.tex_ + t * to.tex_};
+      IndexWithDepth res = {pt_tex, pt_depth};
       buf.emplace_back(std::move(res));
     }
   }
   buf.emplace_back(std::move(to));
 }
 
-void FillAreaBetweenTwoSegments(ImageWithDepth& img, IndexWithDepth point, IndexWithDepth v1,
-                                IndexWithDepth v2, Pixel color) {
+void FillAreaBetweenTwoSegments(const Texture& tex, ImageWithDepth& img, IndexWithDepth point,
+                                IndexWithDepth v1, IndexWithDepth v2, Pixel color, bool is_tex) {
   assert(v1.row_ == v2.row_);
   if (img.GetHeight() > line_buffer_l.capacity()) {
     line_buffer_l.reserve(
@@ -139,12 +154,13 @@ void FillAreaBetweenTwoSegments(ImageWithDepth& img, IndexWithDepth point, Index
   assert(line_buffer_l.size() == line_buffer_r.size());
   size_t line_buffer_sz = line_buffer_l.size();
   for (size_t i = 0; i < line_buffer_sz; ++i) {
-    FillScanline(img, line_buffer_l[i], line_buffer_r[i], color);
+    FillScanline(tex, img, line_buffer_l[i], line_buffer_r[i], color, is_tex);
   }
 }
 
-void FillTriangleFlatBottom(ImageWithDepth& img, IndexWithDepth top, IndexWithDepth bottom1,
-                            IndexWithDepth bottom2, Pixel color) {
+void FillTriangleFlatBottom(const Texture& tex, ImageWithDepth& img, IndexWithDepth top,
+                            IndexWithDepth bottom1, IndexWithDepth bottom2, Pixel color,
+                            bool is_tex) {
   assert(0 <= top.col_ && top.col_ < static_cast<uint32_t>(img.GetWidth()));
   assert(0 <= bottom1.col_ && bottom1.col_ < static_cast<uint32_t>(img.GetWidth()));
   assert(0 <= bottom2.col_ && bottom2.col_ < static_cast<uint32_t>(img.GetWidth()));
@@ -157,11 +173,11 @@ void FillTriangleFlatBottom(ImageWithDepth& img, IndexWithDepth top, IndexWithDe
   if (bottom1.col_ > bottom2.col_) {
     std::swap(bottom1, bottom2);
   }
-  FillAreaBetweenTwoSegments(img, top, bottom1, bottom2, color);
-  //DrawLine(img, bottom1, bottom2, {255, 0, 0});
+  FillAreaBetweenTwoSegments(tex, img, top, bottom1, bottom2, color, is_tex);
+  // DrawLine(img, bottom1, bottom2, {255, 0, 0});
 }
-void FillTriangleFlatTop(ImageWithDepth& img, IndexWithDepth top1, IndexWithDepth top2,
-                         IndexWithDepth bottom, Pixel color) {
+void FillTriangleFlatTop(const Texture& tex, ImageWithDepth& img, IndexWithDepth top1,
+                         IndexWithDepth top2, IndexWithDepth bottom, Pixel color, bool is_tex) {
   assert(0 <= top1.col_ && top1.col_ < static_cast<uint32_t>(img.GetWidth()));
   assert(0 <= top2.col_ && top2.col_ < static_cast<uint32_t>(img.GetWidth()));
   assert(0 <= bottom.col_ && bottom.col_ < static_cast<uint32_t>(img.GetWidth()));
@@ -174,14 +190,14 @@ void FillTriangleFlatTop(ImageWithDepth& img, IndexWithDepth top1, IndexWithDept
   if (top1.col_ > top2.col_) {
     std::swap(top1, top2);
   }
-  FillAreaBetweenTwoSegments(img, bottom, top1, top2, color);
-  //DrawLine(img, top1, top2, {255, 0, 0});
+  FillAreaBetweenTwoSegments(tex, img, bottom, top1, top2, color, is_tex);
+  // DrawLine(img, top1, top2, {255, 0, 0});
 }
 
 }  // namespace
 
 void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, IndexWithDepth v3,
-                  Pixel color) {
+                  const Texture& tex, Pixel lighting_color, bool is_tex) {
   if (v2.row_ > v1.row_) {
     std::swap(v1, v2);
   }
@@ -190,13 +206,13 @@ void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, Ind
   }
 
   if (v1.row_ == v2.row_) {
-    return FillTriangleFlatTop(img, v1, v2, v3, color);
+    return FillTriangleFlatTop(tex, img, v1, v2, v3, lighting_color, is_tex);
   }
   if (v1.row_ == v3.row_) {
-    return FillTriangleFlatTop(img, v3, v1, v2, color);
+    return FillTriangleFlatTop(tex, img, v3, v1, v2, lighting_color, is_tex);
   }
   if (v2.row_ == v3.row_) {
-    return FillTriangleFlatBottom(img, v1, v2, v3, color);
+    return FillTriangleFlatBottom(tex, img, v1, v2, v3, lighting_color, is_tex);
   }
 
   if (v3.row_ > v2.row_) {
@@ -213,11 +229,14 @@ void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, Ind
   if (v3.col_ < v1.col_) {
     x_from_v1 *= -1;
   }
-  Index v1_v3_intersect_nodepth = (Row(v2.row_), Col(std::round(static_cast<int32_t>(v1.col_) + x_from_v1)));
+  Index v1_v3_intersect_nodepth =
+      (Row(v2.row_), Col(std::round(static_cast<int32_t>(v1.col_) + x_from_v1)));
   float depth = static_cast<float>(t * v3.z_ + (1 - t) * v1.z_);
-  IndexWithDepth v1_v3_intersect = {v1_v3_intersect_nodepth, depth};
-  FillTriangleFlatBottom(img, v1, v2, v1_v3_intersect, color);
-  FillTriangleFlatTop(img, v1_v3_intersect, v2, v3, color);
+  Vector2d tex_lerp = v1.tex_ * (1 - t) + v3.tex_ * t;
+  IndexWithTex v1_v3_with_tex = {v1_v3_intersect_nodepth, tex_lerp};
+  IndexWithDepth v1_v3_intersect = {v1_v3_with_tex, depth};
+  FillTriangleFlatBottom(tex, img, v1, v2, v1_v3_intersect, lighting_color, is_tex);
+  FillTriangleFlatTop(tex, img, v1_v3_intersect, v2, v3, lighting_color, is_tex);
   /*
   DrawLine(img, v1, v2, {255, 0, 0});
   DrawLine(img, v2, v3, {255, 0, 0});

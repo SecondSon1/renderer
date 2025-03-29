@@ -14,6 +14,7 @@ add_subdirectory("external/glog")
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 include_directories("${PROJECT_SOURCE_DIR}/external/imgui")
+include_directories("${PROJECT_SOURCE_DIR}/external/stb")
 
 add_executable(main "src/main.cpp"
     "src/graphics/sdl_wrap.cpp"
@@ -37,6 +38,7 @@ add_executable(main "src/main.cpp"
     "src/controller.cpp"
     "src/util/util.cpp"
     "src/scene/lighting.cpp"
+	"src/fs/texture_reader.cpp"
 
     "external/imgui/imgui.cpp"
 	"external/imgui/imgui_draw.cpp"

@@ -68,6 +68,13 @@ HDRPixel& HDRPixel::operator*=(float scalar) {
   return *this;
 }
 
+HDRPixel& HDRPixel::operator*=(HDRPixel rhs) {
+  SetR(r_ * rhs.r_);
+  SetG(g_ * rhs.g_);
+  SetB(b_ * rhs.b_);
+  return *this;
+}
+
 HDRPixel& HDRPixel::operator/=(float scalar) {
   assert(util::Sign(scalar) > 0);
   return *this *= (1 / scalar);
