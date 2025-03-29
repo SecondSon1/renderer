@@ -75,7 +75,7 @@ ExampleScene::ExampleScene(std::vector<Mesh>&& meshes, Texture&& texture)
 
 void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {
   time_since_start_ += seconds_elapsed;
-  size_t mesh_to_transform = 0;
+  size_t mesh_to_transform = 1;
   auto example_transformation = ExampleTransform(time_since_start_);
 
   const auto& orig_mesh = orig_meshes_[mesh_to_transform].triangles_;
@@ -86,6 +86,7 @@ void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {
     mesh_tt[idx] = orig_mesh[idx].Transform(example_transformation);
   }
 
+  return;
   constexpr double kLightingChangeSpeed = 0.2;
   lighting_ = orig_lighting_;
   auto& changing_light_source = std::get<DirectionalLight>(lighting_[1]);
