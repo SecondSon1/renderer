@@ -9,7 +9,6 @@
 #include <glog/logging.h>
 #include "fs/loader.hpp"
 #include "scene/mesh.hpp"
-#include "scenes/example_scene.hpp"
 
 namespace renderer {
 
@@ -21,9 +20,9 @@ constexpr std::string_view kWindowTitle = "3D Renderer";
 
 }  // namespace
 
-renderer::Application::Application()
+renderer::Application::Application(SceneCreator&& scene_creator)
     : renderer_(kWindowWidth, kWindowHeight),
-      scene_(LoadScene()),
+      scene_(LoadScene(std::move(scene_creator))),
       last_image_(kWindowWidth, kWindowHeight),
       camera_(InitializeCamera()),
       ctl_(camera_),
@@ -64,7 +63,7 @@ constexpr std::string_view kDatalistFileName = "data/datalist.txt";
 
 }
 
-std::unique_ptr<Scene> Application::LoadScene() const {
+std::unique_ptr<Scene> Application::LoadScene(SceneCreator&& scene_creator) const {
   static const std::filesystem::path kDatalistFilePath = kDatalistFileName;
   DataLoader loader(kDatalistFilePath);
   std::vector<Mesh> objects = loader.GetAllObjects();
@@ -73,7 +72,7 @@ std::unique_ptr<Scene> Application::LoadScene() const {
   std::filesystem::path fs_path(path_to_tex);
   Texture texture = TextureReader::LoadImage(fs_path);
 
-  return std::make_unique<example::ExampleScene>(std::move(objects), std::move(texture));
+  return scene_creator(std::move(objects), std::move(texture));
 }
 
 Camera Application::InitializeCamera() const {

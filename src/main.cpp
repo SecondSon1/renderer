@@ -1,8 +1,11 @@
+#include <utility>
+#include <functional>
 #include <imgui.h>
 #include <glog/logging.h>
 #include "fs/root_finder.hpp"
 #include "app.hpp"
 #include "except.hpp"
+#include "scenes/example_scene.hpp"
 
 namespace {
 
@@ -22,6 +25,10 @@ void InitializeGlobalObjects(const char *argv0) {
   InitializeDearImgui();
 }
 
+renderer::ScenePtr CreateExampleScene(std::vector<renderer::Mesh> &&mesh, renderer::Texture &&tex) {
+  return std::make_unique<renderer::example::ExampleScene>(std::move(mesh), std::move(tex));
+}
+
 }  // namespace
 
 int main(int argc, char *argv[]) {
@@ -30,7 +37,7 @@ int main(int argc, char *argv[]) {
   renderer::MoveToRoot();
 
   try {
-    renderer::Application app;
+    renderer::Application app(CreateExampleScene);
     app.Run();
   } catch (...) {
     except::react();

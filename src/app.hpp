@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <functional>
+#include <vector>
 #include "renderer.hpp"
 #include "view.hpp"
 #include "controller.hpp"
@@ -10,18 +12,22 @@
 #include "graphics/sdl_wrap.hpp"
 #include "util/timer.hpp"
 #include "util/timings_measurer.hpp"
+#include "fs/texture_reader.hpp"
 
 namespace renderer {
 
+using ScenePtr = std::unique_ptr<Scene>;
+using SceneCreator = std::function<ScenePtr(std::vector<Mesh>&&, Texture&&)>;
+
 class Application {
  public:
-  Application();
+  Application(SceneCreator&& scene_creator);
 
   void Run();
 
  private:
-  std::unique_ptr<Scene> LoadScene() const;
   Camera InitializeCamera() const;
+  std::unique_ptr<Scene> LoadScene(SceneCreator&& scene_creator) const;
 
   void HandleEvent(SDL::Event&& event);
   void RenderImage();
