@@ -76,8 +76,9 @@ Pixel FetchColorFromTexture(const Texture& tex, Vector2d tex_cds) {
   return tex[Row(row), Col(col)];
 }
 
+template <bool is_tex>
 void FillScanline(const Texture& tex, ImageWithDepth& img, IndexWithDepth from, IndexWithDepth to,
-                  Pixel lighting_color, bool is_tex) {
+                  Pixel lighting_color) {
   assert(from.row_ == to.row_);
   assert(from.col_ <= to.col_);
   if (from.col_ == to.col_) {
@@ -153,8 +154,14 @@ void FillAreaBetweenTwoSegments(const Texture& tex, ImageWithDepth& img, IndexWi
   FillBufferWithLine(line_buffer_r, point, v2);
   assert(line_buffer_l.size() == line_buffer_r.size());
   size_t line_buffer_sz = line_buffer_l.size();
-  for (size_t i = 0; i < line_buffer_sz; ++i) {
-    FillScanline(tex, img, line_buffer_l[i], line_buffer_r[i], color, is_tex);
+  if (is_tex) {
+    for (size_t i = 0; i < line_buffer_sz; ++i) {
+      FillScanline<true>(tex, img, line_buffer_l[i], line_buffer_r[i], color);
+    }
+  } else {
+    for (size_t i = 0; i < line_buffer_sz; ++i) {
+      FillScanline<false>(tex, img, line_buffer_l[i], line_buffer_r[i], color);
+    }
   }
 }
 

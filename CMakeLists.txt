@@ -6,8 +6,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-find_package(OpenMP REQUIRED)
-
 add_subdirectory("external/eigen")
 add_subdirectory("external/sdl")
 add_subdirectory("external/glog")
@@ -53,4 +51,3 @@ target_compile_features(main PRIVATE cxx_std_20)
 target_link_libraries(main PRIVATE SDL3::SDL3)
 target_link_libraries(main PRIVATE glog::glog)
 target_link_libraries(main PRIVATE Eigen3::Eigen)
-target_link_libraries(main PRIVATE OpenMP::OpenMP_CXX)

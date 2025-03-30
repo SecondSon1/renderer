@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <execution>
-#include <omp.h>
 #include <glog/logging.h>
 
 namespace renderer {
