@@ -20,7 +20,7 @@ std::vector<Mesh> InitialTransform(std::vector<Mesh>&& meshes) {
   }
 
   Vector3d translation{};
-  translation << 2, 1, 1;
+  translation << 1, 1, 1;
   Mat4x4d transformation = GetTranslationMatrix(translation);
   transformed[0] = transformed[0].Transform(transformation);
 
@@ -60,9 +60,16 @@ Lighting GenerateLighting() {
 
 Mat4x4d ExampleTransform(util::Timer::SecondsUnit elapsed) {
   Mat4x4d rotationMatrixX = GetRotationMatrixX(elapsed * 2);
-  Mat4x4d rotationMatrixZ = GetRotationMatrixY(elapsed);
+  Mat4x4d rotationMatrixY = GetRotationMatrixY(elapsed);
 
-  return rotationMatrixX * rotationMatrixZ;
+  return rotationMatrixX * rotationMatrixY;
+}
+
+Mat4x4d ExampleTransform2(util::Timer::SecondsUnit elapsed) {
+  Mat4x4d rotationMatrixZ = GetRotationMatrixZ(elapsed * 1.3);
+  Mat4x4d rotationMatrixX = GetRotationMatrixX(elapsed);
+
+  return rotationMatrixZ * rotationMatrixX;
 }
 
 }  // namespace
@@ -76,9 +83,10 @@ ExampleScene::ExampleScene(std::vector<Mesh>&& meshes, Texture&& texture)
 void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {
   time_since_start_ += seconds_elapsed;
   auto example_transformation = ExampleTransform(time_since_start_);
+  auto example_transformation2 = ExampleTransform2(time_since_start_);
 
   meshes_[0] = orig_meshes_[0].Transform(example_transformation);
-  meshes_[1] = orig_meshes_[1].Transform(example_transformation / 2.71);
+  meshes_[1] = orig_meshes_[1].Transform(example_transformation2);
 
   return;
   constexpr double kLightingChangeSpeed = 0.2;

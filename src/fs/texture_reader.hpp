@@ -20,7 +20,9 @@ class Texture {
   ~Texture();
 
   Pixel operator[](Index ind) const {
-    size_t pix_ind = ind.row_ * GetWidth() + ind.col_;
+    assert(ind.row_ < GetHeight());
+    assert(ind.col_ < GetWidth());
+    size_t pix_ind = (GetHeight() - ind.row_ - 1) * GetWidth() + ind.col_;
     Pixel pixel;
     pixel.r_ = GetBuffer()[pix_ind * 3 + 0];
     pixel.g_ = GetBuffer()[pix_ind * 3 + 1];

@@ -46,7 +46,7 @@ class Application {
   util::TimingsMeasurer frame_timings_measurer_;
 
   bool is_running_ = false;
-  bool is_paused_ = false;
+  bool is_paused_ = true;
   bool is_wireframe_ = false;
 };
 

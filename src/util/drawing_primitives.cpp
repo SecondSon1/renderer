@@ -82,7 +82,8 @@ void FillScanline(const Texture& tex, ImageWithDepth& img, IndexWithDepth from, 
   assert(from.row_ == to.row_);
   assert(from.col_ <= to.col_);
   if (from.col_ == to.col_) {
-    auto color = HDRPixel::FromPixel(is_tex ? FetchColorFromTexture(tex, from.tex_) : colors::kWhite);
+    auto color =
+        HDRPixel::FromPixel(is_tex ? FetchColorFromTexture(tex, from.tex_) : colors::kWhite);
     color *= lighting_color;
     img[from.ToIndex()].SetIfCloserToCamera(Pixel::FromHDR(color), from.z_);
     return;
@@ -93,7 +94,7 @@ void FillScanline(const Texture& tex, ImageWithDepth& img, IndexWithDepth from, 
     assert(0 <= t && t <= 1);
     float depth = static_cast<float>(t * to.z_ + (1 - t) * from.z_);
     // float depth = static_cast<float>(t * from.z_ + (1 - t) * to.z_);
-    Vector2d tex_vec = (1 - t) * from.tex_ + t * to.tex_;
+    Vector2d tex_vec = ((1 - t) * from.z_ * from.tex_ + t * to.z_ * to.tex_) / depth;
     auto color = HDRPixel::FromPixel(is_tex ? FetchColorFromTexture(tex, tex_vec) : colors::kWhite);
     color *= lighting_color;
     img[from.row_, Col(i)].SetIfCloserToCamera(Pixel::FromHDR(color), depth);
@@ -133,7 +134,7 @@ void FillBufferWithLine(std::vector<IndexWithDepth>& buf, IndexWithDepth from, I
       Index pt_nodepth = (Col(prev_x), Row(prev_y));
       double t = FindTDiscrete(from, to, pt_nodepth);
       float pt_depth = static_cast<float>(t * to.z_ + (1 - t) * from.z_);
-      IndexWithTex pt_tex = {pt_nodepth, (1 - t) * from.tex_ + t * to.tex_};
+      IndexWithTex pt_tex = {pt_nodepth, ((1 - t) * from.z_ * from.tex_ + t * to.z_ * to.tex_) / pt_depth};
       IndexWithDepth res = {pt_tex, pt_depth};
       buf.emplace_back(std::move(res));
     }
@@ -239,7 +240,7 @@ void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, Ind
   Index v1_v3_intersect_nodepth =
       (Row(v2.row_), Col(std::round(static_cast<int32_t>(v1.col_) + x_from_v1)));
   float depth = static_cast<float>(t * v3.z_ + (1 - t) * v1.z_);
-  Vector2d tex_lerp = v1.tex_ * (1 - t) + v3.tex_ * t;
+  Vector2d tex_lerp = (v1.tex_ * v1.z_ * (1 - t) + v3.tex_ * v3.z_ * t) / depth;
   IndexWithTex v1_v3_with_tex = {v1_v3_intersect_nodepth, tex_lerp};
   IndexWithDepth v1_v3_intersect = {v1_v3_with_tex, depth};
   FillTriangleFlatBottom(tex, img, v1, v2, v1_v3_intersect, lighting_color, is_tex);
