@@ -75,16 +75,10 @@ ExampleScene::ExampleScene(std::vector<Mesh>&& meshes, Texture&& texture)
 
 void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {
   time_since_start_ += seconds_elapsed;
-  size_t mesh_to_transform = 1;
   auto example_transformation = ExampleTransform(time_since_start_);
 
-  const auto& orig_mesh = orig_meshes_[mesh_to_transform].triangles_;
-  auto& mesh_tt = meshes_[mesh_to_transform].triangles_;
-  assert(orig_mesh.size() == mesh_tt.size());
-
-  for (size_t idx = 0; idx < orig_mesh.size(); ++idx) {
-    mesh_tt[idx] = orig_mesh[idx].Transform(example_transformation);
-  }
+  meshes_[0] = orig_meshes_[0].Transform(example_transformation);
+  meshes_[1] = orig_meshes_[1].Transform(example_transformation / 2.71);
 
   return;
   constexpr double kLightingChangeSpeed = 0.2;
