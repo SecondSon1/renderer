@@ -4,17 +4,17 @@
 
 namespace renderer {
 
-Mat4x4d renderer::GetRotationMatrixX(double rad) {
+Mat4x4d GetRotationMatrixX(double rad) {
   Eigen::Affine3d transform(Eigen::AngleAxisd(rad, Vector3d::UnitX()));
   return transform.matrix();
 }
 
-Mat4x4d renderer::GetRotationMatrixY(double rad) {
+Mat4x4d GetRotationMatrixY(double rad) {
   Eigen::Affine3d transform(Eigen::AngleAxisd(rad, Vector3d::UnitY()));
   return transform.matrix();
 }
 
-Mat4x4d renderer::GetRotationMatrixZ(double rad) {
+Mat4x4d GetRotationMatrixZ(double rad) {
   Eigen::Affine3d transform(Eigen::AngleAxisd(rad, Vector3d::UnitZ()));
   return transform.matrix();
 }

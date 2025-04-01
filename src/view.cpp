@@ -56,8 +56,12 @@ void View::DrawControllerOptions(Controller& ctl) {
 void View::DrawCameraOptions(Camera& camera) {
   StartOptionsWindow();
 
-  ImGui::Text("Camera position: x=%.2lf, y=%.2lf, z=%.2lf", camera.pos_.x(), camera.pos_.y(),
-              camera.pos_.z());
+  const auto& cam_pos = camera.pos_;
+  ImGui::Text("Camera position: x=%.2lf, y=%.2lf, z=%.2lf", cam_pos.x(), cam_pos.y(), cam_pos.z());
+  ImGui::Text("Camera rotation as quaternion:");
+  const auto& cam_dir = camera.dir_;
+  ImGui::Text("  %.3lf + %.3lfi + %.3lfj + %.3lfk", cam_dir.w(), cam_dir.x(), cam_dir.y(),
+              cam_dir.z());
 
   constexpr double kFOVMinVal = 30;
   constexpr double kFOVMaxVal = 150;

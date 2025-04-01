@@ -8,11 +8,11 @@ git --recursive -b dev https://github.com/SecondSon1/renderer.git
 
 Если уже склонировали без recursive, то надо будет прописать
 ```bash
-git submodule update --recursive
+git submodule update --init --recursive
 ```
 чтобы подтянуть все зависимости, которые добавлены, как git submodules.
 
-### Чтобы запустить:
+### Чтобы скомпилировать:
 
 В Windows:
 
@@ -21,16 +21,44 @@ git submodule update --recursive
 Через CMD/Powershell надо будет вызывать ```vcvarsall.bat```,
 либо сразу открыть Developer Command Prompt, которая сделает
 это за вас. Это подгружает в PATH исполняемые утилиты, связанные
-с компилятором. Оттуда вы можете прописать то же самое, что и в
-случае с bash.
+с компилятором. После этого:
+
+```cmd
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release --parallel <количество потоков на процессоре>
+```
 
 В Unix-based:
 
 ```bash
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build . --parallel <количество потоков на процессоре>
+```
+
+В режиме отладки собирать приложение не советую, даже у меня на достаточно
+мощном процессоре 5 фпс на сцене с одним кубом.
+
+### Чтобы запустить:
+
+В Visual Studio у вас все запустилось еще на прошлом шаге.
+
+Если вы на Windows, делали все из консоли и использовался для компиляции
+MSVC, то исполняемый файл будет в папке ```.\build\bin\Release\main.exe```.
+Вы уже в ```build``` так что останется:
+
+```cmd
+.\bin\Release\main.exe
+```
+
+Если вы на Unix-based системе: исполняемый файл будет в ```./build/bin/main```.
+Значит надо:
+
+```bash
+./bin/main
 ```
 
 ### Управление:

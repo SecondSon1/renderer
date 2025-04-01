@@ -154,11 +154,11 @@ bool AreIndicesCorrect(size_t current_count, Args... inds) {
 }
 
 Triangle::Vector GetVertexFromEntry(ObjParser::VertexEntry entry) {
-  return {entry};
+  return static_cast<Triangle::Vector>(entry);
 }
 
 Triangle::TexVector GetVertexTextureFromEntry(ObjParser::VertexTextureEntry entry) {
-  return {entry};
+  return static_cast<Triangle::TexVector>(entry);
 }
 
 Triangle GetFaceFromEntry(ObjParser::FaceEntry entry, const std::vector<Triangle::Vector>& vertices,

@@ -6,4 +6,4 @@ Ks 0.500000 0.500000 0.500000
 Ni 1.000000
 d 1.000000
 illum 2
-map_Kd C:\Users\Lyterim\Projects\renderer\data\gentle-giant.jpg
+map_Kd .\concat.jpg

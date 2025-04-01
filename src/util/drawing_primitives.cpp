@@ -57,20 +57,13 @@ double FindTDiscrete(IndexWithDepth a, IndexWithDepth b, Index point) {
   int32_t cy = static_cast<int32_t>(point.row_) - static_cast<int32_t>(b.row_);
   double t = static_cast<double>(px * cx + py * cy) / static_cast<double>(px * px + py * py);
   assert(0 <= t && t <= 1);
-  /*
-  t = std::min(1.0, t);
-  t = std::max(0.0, t);
-  LOG_EVERY_N(INFO, 1000) << a.col_ << " " << a.row_ << " " << b.col_ << " " << b.row_ << " "
-                          << point.col_ << " " << point.row_ << ": d1=" << a.z_ << ", d2=" << b.z_
-                          << "; t = " << t << ", result = " << res;
-  */
 
   return 1 - t;
 }
 
 Pixel FetchColorFromTexture(const Texture& tex, Vector2d tex_cds) {
-  assert(0 <= tex_cds[0] && tex_cds[0] <= 1);
-  assert(0 <= tex_cds[1] && tex_cds[1] <= 1);
+  assert(-1e-6 <= tex_cds[0] && tex_cds[0] <= (1 + 1e-6));
+  assert(-1e-6 <= tex_cds[1] && tex_cds[1] <= (1 + 1e-6));
   uint32_t row = std::round(tex_cds[1] * (tex.GetHeight() - 1));
   uint32_t col = std::round(tex_cds[0] * (tex.GetWidth() - 1));
   return tex[Row(row), Col(col)];

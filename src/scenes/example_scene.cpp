@@ -28,7 +28,7 @@ std::vector<Mesh> InitialTransform(std::vector<Mesh>&& meshes) {
 }
 
 Lighting GenerateLighting() {
-  constexpr double kAmbientLightLevel = 0.1;
+  constexpr double kAmbientLightLevel = 0.3;
   constexpr double kMainLightLevel = 0.9;
   Lighting result{};
   result.emplace_back(AmbientLight{
