@@ -27,17 +27,20 @@ ObjParser::VertexTextureEntry GetVertexTextureEntry(std::istream& in_stream) {
   return result;
 }
 
-void ReadOnePartOfFaceEntry(std::istream& in_stream, size_t& vertex_index,
+bool ReadOnePartOfFaceEntry(std::istream& in_stream, size_t& vertex_index,
                             std::optional<size_t>& texture_index,
-                            std::optional<size_t>& normal_index) {
+                            std::optional<size_t>& normal_index, bool explode_on_failure) {
   if (!(in_stream >> vertex_index)) {
+    if (!explode_on_failure) {
+      return false;
+    }
     LOG(FATAL)
         << "wrong format for face in an .obj file: should specify all 3 indices for vertices";
   }
 
   int split = in_stream.get();
   if (split != '/') {
-    return;
+    return true;
   }
   if (in_stream.peek() != '/') {
     size_t tex_ind;
@@ -48,7 +51,7 @@ void ReadOnePartOfFaceEntry(std::istream& in_stream, size_t& vertex_index,
     texture_index = tex_ind;
   }
   if ((split = in_stream.get()) != '/') {
-    return;
+    return true;
   }
   if (split == '/') {
     size_t norm_ind;
@@ -58,11 +61,13 @@ void ReadOnePartOfFaceEntry(std::istream& in_stream, size_t& vertex_index,
     }
     normal_index = norm_ind;
   }
+  return true;
 }
 
 ObjParser::FaceEntry GetFaceEntry(std::istream& in_stream) {
   using IndexArray = ObjParser::FaceEntry::IndexArray;
-  ObjParser::FaceEntry result{.vertex_indices_ = IndexArray{},
+  ObjParser::FaceEntry result{.sz_ = 0,
+                              .vertex_indices_ = IndexArray{},
                               .texture_indices_ = IndexArray{},
                               .normal_indices_ = IndexArray{}};
 
@@ -73,10 +78,16 @@ ObjParser::FaceEntry GetFaceEntry(std::istream& in_stream) {
   size_t texture_inds_count = 0;
   size_t normal_inds_count = 0;
 
-  for (size_t i = 0; i < 3; ++i) {
+  for (size_t i = 0; i < 4; ++i) {
     std::optional<size_t> texture_proxy;
     std::optional<size_t> normal_proxy;
-    ReadOnePartOfFaceEntry(in_stream, vertex_indices[i], texture_proxy, normal_proxy);
+    bool read_result =
+        ReadOnePartOfFaceEntry(in_stream, vertex_indices[i], texture_proxy, normal_proxy, i < 3);
+    assert(i == 3 || read_result);
+    if (!read_result) {
+      break;
+    }
+    ++result.sz_;
     if (texture_proxy) {
       ++texture_inds_count;
       texture_indices[i] = texture_proxy.value();
@@ -86,17 +97,28 @@ ObjParser::FaceEntry GetFaceEntry(std::istream& in_stream) {
       normal_indices[i] = normal_proxy.value();
     }
   }
+  assert(result.sz_ == 3 || result.sz_ == 4);
+  {
+    size_t trash_int;
+    std::optional<size_t> trash_opt1;
+    std::optional<size_t> trash_opt2;
+    bool result = ReadOnePartOfFaceEntry(in_stream, trash_int, trash_opt1, trash_opt2, false);
+    if (result) {
+      LOG(FATAL) << "wrong format for face in an .obj file: only support up to 4 vertices in a "
+                    "single face entry";
+    }
+  }
 
   if (texture_inds_count == 0) {
     result.texture_indices_ = std::nullopt;
-  } else if (texture_inds_count < 3) {
-    LOG(FATAL) << "wrong format for face in an .obj file: can only supply either none or all 3 "
+  } else if (texture_inds_count < result.sz_) {
+    LOG(FATAL) << "wrong format for face in an .obj file: can only supply either none or all "
                   "texture indices";
   }
   if (normal_inds_count == 0) {
     result.normal_indices_ = std::nullopt;
-  } else if (normal_inds_count < 3) {
-    LOG(FATAL) << "wrong format for face in an .obj file: can only supply either none or all 3 "
+  } else if (normal_inds_count < result.sz_) {
+    LOG(FATAL) << "wrong format for face in an .obj file: can only supply either none or all "
                   "normal indices";
   }
 
@@ -161,8 +183,15 @@ Triangle::TexVector GetVertexTextureFromEntry(ObjParser::VertexTextureEntry entr
   return static_cast<Triangle::TexVector>(entry);
 }
 
-Triangle GetFaceFromEntry(ObjParser::FaceEntry entry, const std::vector<Triangle::Vector>& vertices,
-                          const std::vector<Triangle::TexVector>& tex_vertices) {
+struct OneOrTwoTriangles {
+  Triangle first_{};
+  std::optional<Triangle> second_{};
+};
+
+Triangle BuildTriangleFromFaceEntry(const ObjParser::FaceEntry& entry,
+                                    const std::vector<Triangle::Vector>& vertices,
+                                    const std::vector<Triangle::TexVector>& tex_vertices) {
+  assert(entry.sz_ == 3);
   const auto& vert_indices = entry.vertex_indices_;
   size_t vert1 = vert_indices[0];
   size_t vert2 = vert_indices[1];
@@ -216,6 +245,31 @@ Triangle GetFaceFromEntry(ObjParser::FaceEntry entry, const std::vector<Triangle
   return result;
 }
 
+OneOrTwoTriangles GetFaceFromEntry(ObjParser::FaceEntry entry,
+                                   const std::vector<Triangle::Vector>& vertices,
+                                   const std::vector<Triangle::TexVector>& tex_vertices) {
+  OneOrTwoTriangles result{};
+  auto real_sz = entry.sz_;
+  entry.sz_ = 3;
+  result.first_ = BuildTriangleFromFaceEntry(entry, vertices, tex_vertices);
+  if (real_sz == 4) {
+    std::swap(entry.vertex_indices_[0], entry.vertex_indices_[2]);
+    entry.vertex_indices_[1] = entry.vertex_indices_[3];
+    if (entry.normal_indices_) {
+      auto& norm_inds = entry.normal_indices_.value();
+      std::swap(norm_inds[0], norm_inds[2]);
+      norm_inds[1] = norm_inds[3];
+    }
+    if (entry.texture_indices_) {
+      auto& tex_inds = entry.texture_indices_.value();
+      std::swap(tex_inds[0], tex_inds[2]);
+      tex_inds[1] = tex_inds[3];
+    }
+    result.second_ = BuildTriangleFromFaceEntry(entry, vertices, tex_vertices);
+  }
+  return result;
+}
+
 }  // namespace
 
 Mesh ObjParser::ConstructMesh() {
@@ -233,7 +287,11 @@ Mesh ObjParser::ConstructMesh() {
                          texture_vertices.emplace_back(GetVertexTextureFromEntry(entry));
                        },
                        [&vertices, &result, &texture_vertices](ObjParser::FaceEntry entry) {
-                         result.emplace_back(GetFaceFromEntry(entry, vertices, texture_vertices));
+                         auto [first, second] = GetFaceFromEntry(entry, vertices, texture_vertices);
+                         result.emplace_back(first);
+                         if (second) {
+                           result.emplace_back(second.value());
+                         }
                        },
                        [](ObjParser::UnsupportedEntry) {}};
 

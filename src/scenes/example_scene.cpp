@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cmath>
 #include <utility>
+#include <numbers>
 #include "linalg.hpp"
 #include "scene/lighting.hpp"
 
@@ -14,15 +15,21 @@ namespace {
 
 std::vector<Mesh> InitialTransform(std::vector<Mesh>&& meshes) {
   std::vector<Mesh> transformed = std::move(meshes);
-  for (auto& obj : transformed) {
-    bool big = obj.triangles_.size() > 300;
-    obj.local_zero_(2) = big ? 8 : -8;
-  }
+  transformed[0].local_zero_(2) = -8;
+  transformed[1].local_zero_(2) = 8;
+  transformed[2].local_zero_(2) = -8;
+  transformed[3].local_zero_ << 50, -10, -15;
 
   Vector3d translation{};
   translation << 1, 1, 1;
   Mat4x4d transformation = GetTranslationMatrix(translation);
   transformed[0] = transformed[0].Transform(transformation);
+
+  Mat4x4d teapot_transform = GetRotationMatrixX(std::numbers::pi / 2);
+  transformed[1] = transformed[1].Transform(teapot_transform);
+
+  Mat4x4d cottage_transform = GetRotationMatrixY(-std::numbers::pi / 3 * 1.7);
+  transformed[3] = transformed[3].Transform(cottage_transform);
 
   return transformed;
 }
@@ -60,7 +67,7 @@ Lighting GenerateLighting() {
 
 Mat4x4d ExampleTransform(util::Timer::SecondsUnit elapsed) {
   Mat4x4d rotationMatrixX = GetRotationMatrixX(elapsed * 2);
-  Mat4x4d rotationMatrixY = GetRotationMatrixY(elapsed);
+  Mat4x4d rotationMatrixY = GetRotationMatrixZ(elapsed);
 
   return rotationMatrixX * rotationMatrixY;
 }

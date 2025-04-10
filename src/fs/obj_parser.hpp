@@ -20,7 +20,8 @@ class ObjParser {
     using Vector2d::Vector2d;
   };
   struct FaceEntry {
-    using IndexArray = std::array<size_t, 3>;
+    using IndexArray = std::array<size_t, 4>;
+    uint8_t sz_;
     IndexArray vertex_indices_;
     std::optional<IndexArray> texture_indices_;
     std::optional<IndexArray> normal_indices_;

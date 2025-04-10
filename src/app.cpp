@@ -68,7 +68,7 @@ std::unique_ptr<Scene> Application::LoadScene(SceneCreator&& scene_creator) cons
   DataLoader loader(kDatalistFilePath);
   std::vector<Mesh> objects = loader.GetAllObjects();
 
-  std::string path_to_tex = "data/concat.jpg";
+  std::string path_to_tex = "data/tex_all.jpg";
   std::filesystem::path fs_path(path_to_tex);
   Texture texture = TextureReader::LoadImage(fs_path);
 
