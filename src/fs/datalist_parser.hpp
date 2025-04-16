@@ -9,6 +9,7 @@ namespace renderer {
 class DatalistParser {
  public:
   using Entry = std::string;
+
  public:
   DatalistParser(std::istream& stream);
 

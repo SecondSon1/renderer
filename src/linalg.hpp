@@ -19,9 +19,6 @@ using Mat4x4d = Eigen::Matrix4d;
 
 using Quaternion = Eigen::Quaterniond;
 
-using Line = Eigen::Hyperplane<double, 2>;
-using Plane = Eigen::Hyperplane<double, 3>;
-
 Mat4x4d GetRotationMatrixX(double rad);
 Mat4x4d GetRotationMatrixY(double rad);
 Mat4x4d GetRotationMatrixZ(double rad);

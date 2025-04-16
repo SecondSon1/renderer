@@ -79,6 +79,14 @@ Mat4x4d ExampleTransform2(util::Timer::SecondsUnit elapsed) {
   return rotationMatrixZ * rotationMatrixX;
 }
 
+Vector3d GetLightSource(double time_since_start) {
+  constexpr double kLightingChangeSpeed = 0.2;
+  double x = 0.3;
+  double y = std::sin(time_since_start * kLightingChangeSpeed);
+  double z = std::cos(time_since_start * kLightingChangeSpeed);
+  return Vector3d(x, y, z);
+}
+
 }  // namespace
 
 ExampleScene::ExampleScene(std::vector<Mesh>&& meshes, Texture&& texture)
@@ -96,13 +104,9 @@ void ExampleScene::Advance(util::Timer::SecondsUnit seconds_elapsed) {
   meshes_[1] = orig_meshes_[1].Transform(example_transformation2);
 
   return;
-  constexpr double kLightingChangeSpeed = 0.2;
   lighting_ = orig_lighting_;
   auto& changing_light_source = std::get<DirectionalLight>(lighting_[1]);
-  double x = 0.3;
-  double y = std::sin(time_since_start_ * kLightingChangeSpeed);
-  double z = std::cos(time_since_start_ * kLightingChangeSpeed);
-  changing_light_source.direction_ = Vector3d(x, y, z);
+  changing_light_source.direction_ = GetLightSource(time_since_start_);
   changing_light_source.direction_.normalize();
 }
 

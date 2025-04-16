@@ -1,8 +1,7 @@
 #pragma once
 
-#include <utility>
 #include "graphics/image.hpp"
-#include "scene/mesh.hpp"
+#include "linalg.hpp"
 #include "fs/texture_reader.hpp"
 
 namespace renderer {
@@ -25,9 +24,20 @@ struct IndexWithDepth : IndexWithTex {
   }
 };
 
-void DrawLine(ImageWithDepth& img, Index from, Index to, Pixel color);
-void FillTriangle(ImageWithDepth& img, IndexWithDepth v1, IndexWithDepth v2, IndexWithDepth v3,
-                  const Texture& tex, Pixel lighting_color, bool is_tex);
+class Rasterizer {
+ public:
+  Rasterizer(ImageWithDepth& img_to_draw_to, const Texture& main_texture);
+
+  void DrawLine(Index from, Index to, Pixel color);
+  void FillTriangleSolidColor(IndexWithDepth v1, IndexWithDepth v2, IndexWithDepth v3,
+                              Pixel lighting_color);
+  void FillTriangleFromTexture(IndexWithDepth v1, IndexWithDepth v2, IndexWithDepth v3,
+                               Pixel lighting_color);
+
+ private:
+  ImageWithDepth* img_;
+  const Texture* tex_;
+};
 
 }  // namespace util
 

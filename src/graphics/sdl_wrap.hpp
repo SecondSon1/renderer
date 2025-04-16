@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <optional>
 #include <SDL3/SDL.h>
 #include "graphics/image.hpp"

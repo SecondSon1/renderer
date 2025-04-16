@@ -1,6 +1,5 @@
 #include "except.hpp"
 
-#include <stdexcept>
 #include <glog/logging.h>
 
 namespace except {
@@ -15,4 +14,4 @@ void react() {
   }
 }
 
-}
+}  // namespace except

@@ -18,7 +18,7 @@ bool DoesIndicatorExistAt(fs::path path) {
   return fs::exists(path);
 }
 
-}
+}  // namespace
 
 void MoveToRoot() noexcept {
   fs::path path = fs::current_path();

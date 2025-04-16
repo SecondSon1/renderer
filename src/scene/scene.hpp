@@ -1,11 +1,8 @@
 #pragma once
 
 #include <vector>
-#include <utility>
 #include "scene/mesh.hpp"
-#include "scene/camera.hpp"
 #include "scene/lighting.hpp"
-#include "linalg.hpp"
 #include "util/timer.hpp"
 #include "fs/texture_reader.hpp"
 

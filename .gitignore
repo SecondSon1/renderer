@@ -15,3 +15,5 @@ build/
 out/
 .vs/
 imgui.ini
+.DS_Store
+.cache

@@ -5,7 +5,6 @@
 #include <memory>
 #include "scene/camera.hpp"
 #include "util/timer.hpp"
-#include "linalg.hpp"
 #include "graphics/sdl_wrap.hpp"
 
 namespace renderer {

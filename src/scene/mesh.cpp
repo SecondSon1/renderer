@@ -1,10 +1,8 @@
 #include <scene/mesh.hpp>
 
 #include <optional>
-#include <variant>
 #include <utility>
 #include <vector>
-#include <type_traits>
 #include <glog/logging.h>
 #include "util/util.hpp"
 
@@ -34,7 +32,6 @@ Vector3d Triangle::GetNonUnitNormal() const {
   return side1.cross(side2);
 }
 
-
 Mesh Mesh::Transform(const Mat4x4d& mat) const {
   std::vector<Triangle> result;
 
@@ -43,8 +40,8 @@ Mesh Mesh::Transform(const Mat4x4d& mat) const {
     result.emplace_back(tri.Transform(mat));
   }
   return {
-    .triangles_ = std::move(result),
-    .local_zero_ = local_zero_,
+      .triangles_ = std::move(result),
+      .local_zero_ = local_zero_,
   };
 }
 

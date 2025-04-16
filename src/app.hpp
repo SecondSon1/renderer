@@ -30,7 +30,7 @@ class Application {
   std::unique_ptr<Scene> LoadScene(SceneCreator&& scene_creator) const;
 
   void HandleEvent(SDL::Event&& event);
-  void RenderImage();
+  ImageWithDepth RenderImage() const;
   void DrawOptions();
 
   void Quit();

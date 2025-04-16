@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <glog/logging.h>
 #include <Eigen/Geometry>
-#include "util/util.hpp"
 
 namespace renderer {
 

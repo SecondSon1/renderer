@@ -26,9 +26,9 @@ Mat4x4d Camera::GetProjMatrix(double aspect_ratio) const {
   double x_offset_rel_z = (ndc_max_x + ndc_min_x) * ndc_dx_inv;
   double y_offset_rel_z = (ndc_max_y + ndc_min_y) * ndc_dy_inv;
 
-  //double z_scale = -1;
+  // double z_scale = -1;
   double z_scale = 0;
-  //double z_offset_absolute = -2 * z_near_;
+  // double z_offset_absolute = -2 * z_near_;
   double z_offset_absolute = -z_near_;
   if (!inf_z_far_) {
     z_scale *= (z_far_ + z_near_) * frustum_depth_inv;

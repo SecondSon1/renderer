@@ -1,7 +1,6 @@
 #include "util/timings_measurer.hpp"
 
 #include <algorithm>
-#include <utility>
 
 namespace renderer {
 
@@ -14,7 +13,7 @@ namespace {
 constexpr uint32_t kRecomputeSumPer = 256;
 constexpr SecondsUnit kRecomputeAvgPerSeconds = 0.5;
 
-}
+}  // namespace
 
 TimingsMeasurer::TimingsMeasurer()
     : timings_(std::make_unique<std::array<SecondsUnit, kQueueSize>>()) {

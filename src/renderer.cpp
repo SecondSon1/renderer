@@ -306,14 +306,15 @@ Renderer::Renderer(Width screen_width, Height screen_height)
   assert(screen_height_ > 0);
 }
 
-ImageWithDepth Renderer::Render(const Scene* scene, const Camera& camera) {
+ImageWithDepth Renderer::Render(const Scene* scene, const Camera& camera) const {
   double aspect_ratio = static_cast<double>(screen_height_) / screen_width_;
   auto proj_mat = camera.GetProjMatrix(aspect_ratio);
+
   ImageWithDepth result(static_cast<Width>(screen_width_), static_cast<Height>(screen_height_));
+  util::Rasterizer rasterizer(result, scene->GetTexture());
 
   Mat4x4d world_to_camera = camera.GetWorldToCameraTransform();
   Lighting lighting = scene->GetLighting();
-  const Texture& tex = scene->GetTexture();
 
   for (const Mesh& mesh : scene->GetMeshes()) {
     std::vector<Triangle> tris_to_clip;
@@ -330,16 +331,18 @@ ImageWithDepth Renderer::Render(const Scene* scene, const Camera& camera) {
     std::vector<Triangle> clipped_triangles = ClipTriangles(tris_to_clip, camera, aspect_ratio);
     for (const Triangle& tri : clipped_triangles) {
       auto tri_projected = tri.Transform(proj_mat);
-      FillTriangle(result, tri_projected, tex, tri.color_);
+      FillTriangle(rasterizer, tri_projected, tri.color_);
     }
   }
   return result;
 }
 
-ImageWithDepth Renderer::RenderWireframe(const Scene* scene, const Camera& camera) {
+ImageWithDepth Renderer::RenderWireframe(const Scene* scene, const Camera& camera) const {
   double aspect_ratio = static_cast<double>(screen_height_) / screen_width_;
   auto proj_mat = camera.GetProjMatrix(aspect_ratio);
+
   ImageWithDepth result(static_cast<Width>(screen_width_), static_cast<Height>(screen_height_));
+  util::Rasterizer rasterizer(result, scene->GetTexture());
 
   Mat4x4d world_to_camera = camera.GetWorldToCameraTransform();
   for (Mesh mesh : scene->GetMeshes()) {
@@ -350,7 +353,7 @@ ImageWithDepth Renderer::RenderWireframe(const Scene* scene, const Camera& camer
     std::vector<Triangle> clipped_triangles = ClipTriangles(mesh.triangles_, camera, aspect_ratio);
     for (const Triangle& tri : clipped_triangles) {
       auto tri_projected = tri.Transform(proj_mat);
-      DrawTriangle(result, tri_projected);
+      DrawTriangle(rasterizer, tri_projected, colors::kWhite);
     }
   }
   return result;
@@ -368,17 +371,17 @@ Index Renderer::NormalizedToIndex(Vector2d vec) const {
   return Col(x_ind), Row(y_ind);
 }
 
-void Renderer::DrawTriangle(ImageWithDepth& img, const Triangle& tri) const {
+void Renderer::DrawTriangle(util::Rasterizer& rst, const Triangle& tri, Pixel color) const {
   Index v0 = NormalizedToIndex(tri[0].head<2>());
   Index v1 = NormalizedToIndex(tri[1].head<2>());
   Index v2 = NormalizedToIndex(tri[2].head<2>());
 
-  util::DrawLine(img, v0, v1, colors::kWhite);
-  util::DrawLine(img, v0, v2, colors::kWhite);
-  util::DrawLine(img, v1, v2, colors::kWhite);
+  rst.DrawLine(v0, v1, color);
+  rst.DrawLine(v0, v2, color);
+  rst.DrawLine(v1, v2, color);
 }
 
-void Renderer::FillTriangle(ImageWithDepth& img, const Triangle& tri, const Texture& tex,
+void Renderer::FillTriangle(util::Rasterizer& rst, const Triangle& tri,
                             Pixel lighting_color) const {
   Index v0 = NormalizedToIndex(tri[0].head<2>());
   Index v1 = NormalizedToIndex(tri[1].head<2>());
@@ -398,8 +401,11 @@ void Renderer::FillTriangle(ImageWithDepth& img, const Triangle& tri, const Text
   util::IndexWithDepth v1d = {v1t, static_cast<float>(tri[1][2])};
   util::IndexWithDepth v2d = {v2t, static_cast<float>(tri[2][2])};
 
-  util::FillTriangle(img, v0d, v1d, v2d, tex, lighting_color,
-                     static_cast<bool>(tri.texture_vertices_));
+  if (tri.texture_vertices_) {
+    rst.FillTriangleFromTexture(v0d, v1d, v2d, lighting_color);
+  } else {
+    rst.FillTriangleSolidColor(v0d, v1d, v2d, lighting_color);
+  }
 }
 
 }  // namespace renderer

@@ -9,7 +9,6 @@
 #include <glog/logging.h>
 #include "graphics/sdl_settings.hpp"
 #include "util/parallelism.hpp"
-#include "util/util.hpp"
 
 namespace renderer {
 
@@ -35,11 +34,11 @@ class HDRPixel {
 
   explicit operator Pixel() const;
 
-  HDRPixel &operator+=(HDRPixel rhs);
-  HDRPixel &operator-=(HDRPixel rhs);
-  HDRPixel &operator*=(float scalar);
-  HDRPixel &operator*=(HDRPixel rhs);
-  HDRPixel &operator/=(float scalar);
+  HDRPixel& operator+=(HDRPixel rhs);
+  HDRPixel& operator-=(HDRPixel rhs);
+  HDRPixel& operator*=(float scalar);
+  HDRPixel& operator*=(HDRPixel rhs);
+  HDRPixel& operator/=(float scalar);
 
   void SetR(float new_r);
   void SetG(float new_g);
@@ -67,7 +66,7 @@ struct PixelWithDepth {
 
   operator Pixel() const;
 
-  PixelWithDepth &operator=(Pixel pixel);
+  PixelWithDepth& operator=(Pixel pixel);
 };
 
 namespace colors {
@@ -109,7 +108,7 @@ class ImageWithDepth {
   PixelWithDepth operator[](Index idx) const;
   PixelReference operator[](Index idx);
 
-  const void *GetPixelBuffer() const;
+  const void* GetPixelBuffer() const;
 
  private:
   size_t GetPixelIndex(Index idx) const;
@@ -119,7 +118,7 @@ class ImageWithDepth {
  private:
   class PixelReference {
    public:
-    PixelReference(uint8_t *pixel, float *z_entry, Tag) noexcept;
+    PixelReference(uint8_t* pixel, float* z_entry, Tag) noexcept;
 
     operator PixelWithDepth() const noexcept;
 
@@ -135,17 +134,17 @@ class ImageWithDepth {
 
    private:
     uint8_t ReadR() const;
-    uint8_t &ReadR();
+    uint8_t& ReadR();
     uint8_t ReadG() const;
-    uint8_t &ReadG();
+    uint8_t& ReadG();
     uint8_t ReadB() const;
-    uint8_t &ReadB();
+    uint8_t& ReadB();
     float ReadZ() const;
-    float &ReadZ();
+    float& ReadZ();
 
    private:
-    uint8_t *pixel_;
-    float *z_;
+    uint8_t* pixel_;
+    float* z_;
   };
 
   uint32_t width_;
@@ -294,8 +293,10 @@ namespace pixel_fmt = SDL::settings::pixel_fmt;
 inline ImageWithDepth::ImageWithDepth(Width width, Height height) noexcept
     : width_(width),
       height_(height),
-      buf_(util::FillParallel<uint8_t>(width * height * pixel_fmt::kPixelSizeInBytes, 0)),
-      z_buf_(util::FillParallel<float>(width * height, std::numeric_limits<float>::infinity())) {
+      buf_(util::FillParallel<uint8_t>(
+          static_cast<size_t>(width) * height * pixel_fmt::kPixelSizeInBytes, 0)),
+      z_buf_(util::FillParallel<float>(static_cast<size_t>(width) * height,
+                                       std::numeric_limits<float>::infinity())) {
 }
 
 inline Width ImageWithDepth::GetWidth() const {
@@ -336,7 +337,7 @@ inline size_t ImageWithDepth::GetPixelIndex(Index idx) const {
 }
 
 inline ImageWithDepth::PixelReference::PixelReference(uint8_t* pixel, float* z_entry,
-                                               ImageWithDepth::Tag) noexcept
+                                                      ImageWithDepth::Tag) noexcept
     : pixel_(pixel), z_(z_entry) {
 }
 
@@ -355,7 +356,8 @@ inline ImageWithDepth::PixelReference ImageWithDepth::PixelReference::operator=(
   return *this;
 }
 
-inline ImageWithDepth::PixelReference ImageWithDepth::PixelReference::operator=(PixelWithDepth pixel) {
+inline ImageWithDepth::PixelReference ImageWithDepth::PixelReference::operator=(
+    PixelWithDepth pixel) {
   ReadZ() = pixel.z_;
   return *this = Pixel(pixel);
 }

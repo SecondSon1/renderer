@@ -26,7 +26,7 @@ class TimingsMeasurer {
 
   SecondsUnit GetAverageTiming() const;
 
-private:
+ private:
   void RecomputeSum();
   void RecomputeAvg();
 

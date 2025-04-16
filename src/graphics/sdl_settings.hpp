@@ -22,8 +22,8 @@ static constexpr uint32_t kRMask = ((1u << 8) - 1) << kRShift;
 static constexpr uint32_t kGMask = ((1u << 8) - 1) << kGShift;
 static constexpr uint32_t kBMask = ((1u << 8) - 1) << kBShift;
 
-}  // namespace PixelFormat
+}  // namespace pixel_fmt
 
-}  // namespace Settings
+}  // namespace settings
 
 }  // namespace SDL

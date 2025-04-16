@@ -1,5 +1,4 @@
 #include <utility>
-#include <functional>
 #include <imgui.h>
 #include <glog/logging.h>
 #include "fs/root_finder.hpp"

@@ -1,6 +1,5 @@
 #include "app.hpp"
 
-#include <numbers>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -49,7 +48,7 @@ void Application::Run() {
     }
     ctl_.Advance(seconds_per_last_frame);
 
-    RenderImage();
+    last_image_ = RenderImage();
     DrawOptions();
 
     view_.Display(last_image_);
@@ -115,11 +114,11 @@ void Application::HandleEvent(SDL::Event&& event) {
   }
 }
 
-void Application::RenderImage() {
+ImageWithDepth Application::RenderImage() const {
   if (is_wireframe_) {
-    last_image_ = renderer_.RenderWireframe(scene_.get(), camera_);
+    return renderer_.RenderWireframe(scene_.get(), camera_);
   } else {
-    last_image_ = renderer_.Render(scene_.get(), camera_);
+    return renderer_.Render(scene_.get(), camera_);
   }
 }
 

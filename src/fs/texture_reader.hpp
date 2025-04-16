@@ -22,7 +22,8 @@ class Texture {
   Pixel operator[](Index ind) const {
     assert(ind.row_ < GetHeight());
     assert(ind.col_ < GetWidth());
-    size_t pix_ind = (GetHeight() - ind.row_ - 1) * GetWidth() + ind.col_;
+    size_t row_from_top = static_cast<size_t>(GetHeight()) - ind.row_ - 1;
+    size_t pix_ind = row_from_top * GetWidth() + ind.col_;
     Pixel pixel;
     pixel.r_ = GetBuffer()[pix_ind * 3 + 0];
     pixel.g_ = GetBuffer()[pix_ind * 3 + 1];
