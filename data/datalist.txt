@@ -1,0 +1,4 @@
+data/cube_new_tex.obj
+data/teapot.obj
+data/cds_new_tex.obj
+data/cottage_new_tex.obj

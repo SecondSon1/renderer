@@ -1,36 +1,45 @@
-#include <SDL3/SDL.h>
+#include <utility>
+#include <imgui.h>
 #include <glog/logging.h>
+#include "fs/root_finder.hpp"
+#include "app.hpp"
+#include "except.hpp"
+#include "scenes/example_scene.hpp"
 
-#include <sdl_wrap.hpp>
+namespace {
 
-constexpr size_t WINDOW_WIDTH = 1280;
-constexpr size_t WINDOW_HEIGHT = 720;
-const char *WINDOW_TITLE = "3D Renderer";
+// https://github.com/ocornut/imgui/wiki/Getting-Started
+void InitializeDearImgui() {
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO &io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+  ImGui::StyleColorsDark();
+}
+
+void InitializeGlobalObjects(const char *argv0) {
+  google::InitGoogleLogging(argv0);
+  InitializeDearImgui();
+}
+
+renderer::ScenePtr CreateExampleScene(std::vector<renderer::Mesh> &&mesh, renderer::Texture &&tex) {
+  return std::make_unique<renderer::example::ExampleScene>(std::move(mesh), std::move(tex));
+}
+
+}  // namespace
 
 int main(int argc, char *argv[]) {
-  google::InitGoogleLogging(argv[0]);
+  InitializeGlobalObjects(argv[0]);
 
-  SDL::Window window(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
-  SDL::Renderer renderer = window.GetRenderer(nullptr);
+  renderer::MoveToRoot();
 
-  SDL_SetRenderDrawColor(renderer.renderer, 0, 0, 0, 0);
-  SDL_RenderClear(renderer.renderer);
-
-  LOG(INFO) << "Started drawing";
-  // TODO: Rendering here :)
-  LOG(INFO) << "Finished drawing";
-
-  SDL_RenderPresent(renderer.renderer);
-
-  bool shouldClose = false;
-  while (!shouldClose) {
-    SDL_Event e;
-    while (SDL_PollEvent(&e)) {
-      if (e.type == SDL_EVENT_QUIT) {
-        shouldClose = true;
-        break;
-      }
-    }
+  try {
+    renderer::Application app(CreateExampleScene);
+    app.Run();
+  } catch (...) {
+    except::react();
   }
 
   return 0;
